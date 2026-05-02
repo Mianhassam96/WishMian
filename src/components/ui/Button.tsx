@@ -6,6 +6,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "sm" | "md" | "lg";
   children: ReactNode;
   loading?: boolean;
+  className?: string;
 }
 
 export default function Button({
