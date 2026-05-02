@@ -103,7 +103,7 @@ export default function HomePage() {
   const [copied, setCopied]     = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const canGenerate = name.trim() && message.trim() && occasion && mood;
+  const canGenerate = !!(name.trim() && message.trim() && occasion && mood);
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,10 +126,10 @@ export default function HomePage() {
   };
 
   const handleGenerate = () => {
-    if (!canGenerate) return;
+    if (!name.trim() || !message.trim() || !occasion || !mood) return;
     const data: WishData = {
       name: name.trim(), from: from.trim(), message: message.trim(),
-      occasion: occasion!, mood: mood!, ...(photo ? { photo } : {}),
+      occasion: occasion, mood: mood, ...(photo ? { photo } : {}),
     };
     const encoded = encodeWish(data);
     const origin = window.location.origin;
@@ -344,8 +344,19 @@ export default function HomePage() {
 
               {/* Generate button */}
               <motion.div {...fadeUp(0.34)}>
-                <motion.button onClick={handleGenerate} disabled={!canGenerate}
-                  whileHover={canGenerate ? { scale: 1.02, y: -2 } : {}}
+                {/* Missing fields hint */}
+                {!canGenerate && (name || message || occasion || mood) && (
+                  <motion.p
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    style={{ textAlign: "center", fontSize: "0.75rem", color: "rgba(251,191,36,0.7)", marginBottom: 10, letterSpacing: "0.05em" }}
+                  >
+                    {!name.trim() ? "⚠ Enter a name" : !message.trim() ? "⚠ Write a message" : !occasion ? "⚠ Pick an occasion" : "⚠ Pick a mood"}
+                  </motion.p>
+                )}
+                <motion.button
+                  type="button"
+                  onClick={handleGenerate}
+                  whileHover={canGenerate ? { scale: 1.02, y: -2 } : { scale: 1.01 }}
                   whileTap={canGenerate ? { scale: 0.98 } : {}}
                   style={{
                     position: "relative", width: "100%", height: 68, borderRadius: 20,
@@ -358,15 +369,15 @@ export default function HomePage() {
                       : "none",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
                     transition: "all 0.3s",
+                    opacity: canGenerate ? 1 : 0.45,
                   }}>
                   {canGenerate && <Shimmer />}
-                  <Wand2 size={22} color={canGenerate ? "#fff" : "rgba(255,255,255,0.2)"} style={{ position: "relative", zIndex: 1 }} />
+                  <Wand2 size={22} color="#fff" style={{ position: "relative", zIndex: 1 }} />
                   <span style={{
                     fontSize: "1.15rem", fontWeight: 700, letterSpacing: "0.02em",
-                    color: canGenerate ? "#fff" : "rgba(255,255,255,0.2)",
-                    position: "relative", zIndex: 1,
+                    color: "#fff", position: "relative", zIndex: 1,
                   }}>✦ Generate Magic Link ✦</span>
-                  <ArrowRight size={22} color={canGenerate ? "#fff" : "rgba(255,255,255,0.2)"} style={{ position: "relative", zIndex: 1 }} />
+                  <ArrowRight size={22} color="#fff" style={{ position: "relative", zIndex: 1 }} />
                 </motion.button>
               </motion.div>
 
