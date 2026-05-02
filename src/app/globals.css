@@ -1,163 +1,85 @@
 @import "tailwindcss";
 
-:root {
-  --bg: #03020a;
-  --gold: #ffd700;
-  --gold-soft: #c9a84c;
-  --purple: #7c3aed;
-  --purple-light: #a78bfa;
-  --glass: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.06);
-}
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg);
-  color: #f0f0f5;
+  background: #060010;
+  color: #ffffff;
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   min-height: 100vh;
 }
 
-/* ── Glass ─────────────────────────────────────────────────────────────────── */
-.glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.glass-strong {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* ── Gradient text ─────────────────────────────────────────────────────────── */
-.gold-text {
-  background: linear-gradient(135deg, #ffe566 0%, #ffd700 40%, #c9a84c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-text {
-  background: linear-gradient(160deg, #ffffff 0%, #e0d4ff 50%, #ffd700 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Glows ─────────────────────────────────────────────────────────────────── */
-.glow-gold {
-  box-shadow:
-    0 0 20px rgba(255, 215, 0, 0.15),
-    0 0 60px rgba(255, 215, 0, 0.08),
-    0 0 120px rgba(255, 215, 0, 0.04);
-}
-.glow-purple {
-  box-shadow:
-    0 0 20px rgba(124, 58, 237, 0.2),
-    0 0 60px rgba(124, 58, 237, 0.1),
-    0 0 120px rgba(124, 58, 237, 0.05);
-}
-.glow-btn {
-  box-shadow:
-    0 0 30px rgba(124, 58, 237, 0.5),
-    0 4px 20px rgba(124, 58, 237, 0.3),
-    inset 0 1px 0 rgba(255,255,255,0.1);
-}
-.glow-btn-gold {
-  box-shadow:
-    0 0 30px rgba(255, 215, 0, 0.4),
-    0 4px 20px rgba(255, 215, 0, 0.2),
-    inset 0 1px 0 rgba(255,255,255,0.2);
-}
-
-/* ── Label ─────────────────────────────────────────────────────────────────── */
-.label {
-  font-size: 0.65rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-/* ── Inputs ────────────────────────────────────────────────────────────────── */
-.input {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 16px;
-  padding: 16px 20px;
-  color: #fff;
-  font-size: 1rem;
-  outline: none;
-  transition: all 0.3s ease;
-  font-family: inherit;
-}
-.input::placeholder { color: rgba(255, 255, 255, 0.18); }
-.input:focus {
-  border-color: rgba(124, 58, 237, 0.6);
-  background: rgba(124, 58, 237, 0.05);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12), 0 0 20px rgba(124, 58, 237, 0.1);
-}
-
-/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 3px; }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.3); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.4); border-radius: 4px; }
 
-/* ── Canvas (particles) ────────────────────────────────────────────────────── */
+/* ── Particle canvas ── */
 canvas.particles-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
 }
 
-/* ── Viewer screens ────────────────────────────────────────────────────────── */
+/* ── Viewer ── */
 .viewer-screen {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #03020a;
-  z-index: 50;
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #060010; z-index: 50;
 }
 
-/* ── Shimmer animation ─────────────────────────────────────────────────────── */
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+/* ── Animations ── */
+@keyframes aurora {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(60px,-40px) scale(1.1); }
+  66%  { transform: translate(-40px,60px) scale(0.95); }
+  100% { transform: translate(0,0) scale(1); }
 }
-.shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
-  background-size: 200% 100%;
-  animation: shimmer 3s infinite;
+@keyframes aurora2 {
+  0%   { transform: translate(0,0) scale(1.1); }
+  33%  { transform: translate(-80px,50px) scale(1); }
+  66%  { transform: translate(50px,-60px) scale(1.15); }
+  100% { transform: translate(0,0) scale(1.1); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+@keyframes float-y {
+  0%,100% { transform: translateY(0px); }
+  50%     { transform: translateY(-14px); }
+}
+@keyframes pulse-glow {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50%     { opacity: 1;   transform: scale(1.08); }
+}
+@keyframes shimmer-move {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes border-spin {
+  from { --angle: 0deg; }
+  to   { --angle: 360deg; }
+}
+@keyframes text-glow-pulse {
+  0%,100% { text-shadow: 0 0 20px rgba(255,215,0,0.4), 0 0 40px rgba(255,215,0,0.2); }
+  50%     { text-shadow: 0 0 40px rgba(255,215,0,0.8), 0 0 80px rgba(255,215,0,0.4), 0 0 120px rgba(255,215,0,0.2); }
+}
+@keyframes ripple {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 
-/* ── Float animation ───────────────────────────────────────────────────────── */
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(-2deg); }
-  50% { transform: translateY(-10px) rotate(2deg); }
-}
-.float { animation: float 5s ease-in-out infinite; }
-
-/* ── Pulse ring ────────────────────────────────────────────────────────────── */
-@keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(1.5); opacity: 0; }
-}
-.pulse-ring::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  animation: pulse-ring 2s ease-out infinite;
-}
+.aurora-1 { animation: aurora 12s ease-in-out infinite; }
+.aurora-2 { animation: aurora2 15s ease-in-out infinite; }
+.float-anim { animation: float-y 4s ease-in-out infinite; }
+.pulse-anim { animation: pulse-glow 3s ease-in-out infinite; }
+.spin-slow  { animation: spin-slow 20s linear infinite; }
+.spin-rev   { animation: spin-reverse 15s linear infinite; }
+.text-glow-gold { animation: text-glow-pulse 3s ease-in-out infinite; }

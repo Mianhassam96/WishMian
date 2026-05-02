@@ -2,39 +2,97 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { encodeWish, WishData, Occasion, Mood } from "@/lib/wish";
 import { Sparkles, Copy, Check, ArrowRight, Camera, X, Wand2 } from "lucide-react";
+import { encodeWish, WishData, Occasion, Mood } from "@/lib/wish";
 import ParticlesBg from "@/components/ParticlesBg";
 
-/* ── Data ─────────────────────────────────────────────────────────────────── */
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
-const OCCASIONS: { value: Occasion; emoji: string; label: string; color: string }[] = [
-  { value: "birthday", emoji: "🎂", label: "Birthday",  color: "#ff6b6b" },
-  { value: "eid",      emoji: "🌙", label: "Eid",       color: "#52b788" },
-  { value: "wedding",  emoji: "💍", label: "Wedding",   color: "#ffb3c6" },
-  { value: "success",  emoji: "🏆", label: "Success",   color: "#ffd700" },
-  { value: "love",     emoji: "💖", label: "Love",      color: "#ff6eb4" },
+const OCCASIONS = [
+  { value: "birthday" as Occasion, emoji: "🎂", label: "Birthday", color: "#ff6b6b", glow: "rgba(255,107,107,0.4)" },
+  { value: "eid"      as Occasion, emoji: "🌙", label: "Eid",      color: "#4ade80", glow: "rgba(74,222,128,0.4)"  },
+  { value: "wedding"  as Occasion, emoji: "💍", label: "Wedding",  color: "#f9a8d4", glow: "rgba(249,168,212,0.4)"},
+  { value: "success"  as Occasion, emoji: "🏆", label: "Success",  color: "#fbbf24", glow: "rgba(251,191,36,0.4)" },
+  { value: "love"     as Occasion, emoji: "💖", label: "Love",     color: "#f472b6", glow: "rgba(244,114,182,0.4)"},
 ];
 
-const MOODS: { value: Mood; label: string; emoji: string; desc: string; gradient: string }[] = [
-  { value: "luxury",      label: "Luxury",      emoji: "✨", desc: "Gold & elegant",   gradient: "from-yellow-500/20 to-amber-600/10" },
-  { value: "royal",       label: "Royal",       emoji: "👑", desc: "Purple & gold",    gradient: "from-purple-600/20 to-yellow-500/10" },
-  { value: "celebration", label: "Celebrate",   emoji: "🎊", desc: "Colorful burst",   gradient: "from-pink-500/20 to-orange-500/10" },
-  { value: "emotional",   label: "Emotional",   emoji: "💜", desc: "Deep & touching",  gradient: "from-violet-600/20 to-blue-600/10" },
-  { value: "cute",        label: "Cute",        emoji: "🌸", desc: "Soft & sweet",     gradient: "from-pink-400/20 to-rose-400/10" },
+const MOODS = [
+  { value: "luxury"      as Mood, label: "Luxury",    emoji: "✨", color: "#ffd700" },
+  { value: "royal"       as Mood, label: "Royal",     emoji: "👑", color: "#a78bfa" },
+  { value: "celebration" as Mood, label: "Celebrate", emoji: "🎊", color: "#fb923c" },
+  { value: "emotional"   as Mood, label: "Emotional", emoji: "💜", color: "#818cf8" },
+  { value: "cute"        as Mood, label: "Cute",      emoji: "🌸", color: "#f9a8d4" },
 ];
 
-/* ── Component ────────────────────────────────────────────────────────────── */
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export default function CreatorPage() {
-  const [form, setForm] = useState<WishData>({
-    name: "", from: "", message: "", occasion: "birthday", mood: "luxury",
-  });
-  const [photo, setPhoto] = useState<string | undefined>();
-  const [link, setLink] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [step, setStep] = useState<"form" | "done">("form");
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 28 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as number[], delay },
+});
+
+function Shimmer() {
+  return (
+    <motion.div
+      aria-hidden="true"
+      style={{
+        position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none",
+        background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)",
+      }}
+      animate={{ x: ["-100%", "100%"] }}
+      transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
+    />
+  );
+}
+
+const inputBase: React.CSSProperties = {
+  width: "100%", background: "rgba(255,255,255,0.05)",
+  border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 20,
+  padding: "18px 22px", fontSize: "1.05rem", color: "#fff",
+  outline: "none", transition: "border 0.25s, box-shadow 0.25s", fontFamily: "inherit",
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: "0.65rem", letterSpacing: "0.25em", textTransform: "uppercase",
+  color: "rgba(167,139,250,0.7)", marginBottom: 10, display: "block",
+};
+
+function FocusInput({ as: Tag = "input", style: extraStyle, ...props }:
+  { as?: "input" | "textarea"; style?: React.CSSProperties } &
+  React.InputHTMLAttributes<HTMLInputElement> & React.TextareaHTMLAttributes<HTMLTextAreaElement>
+) {
+  const [focused, setFocused] = useState(false);
+  const focusStyle: React.CSSProperties = focused ? {
+    border: "1.5px solid rgba(167,139,250,0.8)",
+    boxShadow: "0 0 0 4px rgba(124,58,237,0.15), 0 0 30px rgba(124,58,237,0.2)",
+    background: "rgba(124,58,237,0.06)",
+  } : {};
+  return (
+    <Tag
+      {...(props as never)}
+      style={{ ...inputBase, ...focusStyle, ...extraStyle }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+    />
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function HomePage() {
+  const [pageState, setPageState] = useState<"form" | "done">("form");
+  const [name, setName]       = useState("");
+  const [from, setFrom]       = useState("");
+  const [message, setMessage] = useState("");
+  const [occasion, setOccasion] = useState<Occasion | null>(null);
+  const [mood, setMood]         = useState<Mood | null>(null);
+  const [photo, setPhoto]       = useState<string | null>(null);
+  const [link, setLink]         = useState("");
+  const [copied, setCopied]     = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const canGenerate = name.trim() && message.trim() && occasion && mood;
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,441 +115,945 @@ export default function CreatorPage() {
   };
 
   const handleGenerate = () => {
-    const data: WishData = { ...form, photo };
+    if (!canGenerate) return;
+    const data: WishData = {
+      name: name.trim(), from: from.trim(), message: message.trim(),
+      occasion: occasion!, mood: mood!, ...(photo ? { photo } : {}),
+    };
     const encoded = encodeWish(data);
     const origin = window.location.origin;
-    const repoBase = window.location.pathname.startsWith("/WishMian") ? "/WishMian" : "";
-    setLink(`${origin}${repoBase}/w/?data=${encoded}`);
-    setStep("done");
+    const base = window.location.pathname.startsWith("/WishMian") ? "/WishMian" : "";
+    setLink(`${origin}${base}/w/?data=${encoded}`);
+    setPageState("done");
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(link);
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(link);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCopied(false), 2200);
   };
 
-  const canGenerate = form.name.trim().length > 0 && form.message.trim().length > 0;
-  const selectedOccasion = OCCASIONS.find(o => o.value === form.occasion)!;
+  const reset = () => {
+    setPageState("form"); setName(""); setFrom(""); setMessage("");
+    setOccasion(null); setMood(null); setPhoto(null); setLink("");
+  };
 
   return (
-    <div className="relative min-h-screen overflow-hidden" style={{ background: "#03020a" }}>
-      <ParticlesBg />
+    <div style={{ minHeight: "100vh", background: "#060010", position: "relative", overflowX: "hidden" }}>
+      <ParticlesBg count={90} />
 
-      {/* ── Deep background layers ── */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        {/* Top-left purple nebula */}
-        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)" }} />
-        {/* Bottom-right gold nebula */}
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(255,215,0,0.08) 0%, transparent 70%)" }} />
-        {/* Center glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full"
-          style={{ background: "radial-gradient(ellipse, rgba(124,58,237,0.06) 0%, transparent 70%)" }} />
-      </div>
+      {/* ── Aurora blobs ── */}
+      <div aria-hidden="true" className="aurora-1" style={{
+        position: "fixed", top: "-20%", left: "-10%", width: 700, height: 700,
+        borderRadius: "50%", pointerEvents: "none", zIndex: 0,
+        background: "radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)",
+      }} />
+      <div aria-hidden="true" className="aurora-2" style={{
+        position: "fixed", bottom: "-15%", right: "-10%", width: 600, height: 600,
+        borderRadius: "50%", pointerEvents: "none", zIndex: 0,
+        background: "radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%)",
+      }} />
+      <div aria-hidden="true" style={{
+        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+        width: 900, height: 400, borderRadius: "50%", pointerEvents: "none", zIndex: 0,
+        background: "radial-gradient(ellipse, rgba(109,40,217,0.08) 0%, transparent 70%)",
+      }} />
 
-      <AnimatePresence mode="wait">
-        {step === "form" ? (
-          <motion.div
-            key="form"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.6 }}
-            className="relative z-10 min-h-screen flex flex-col items-center justify-start px-4 py-10"
-          >
-            {/* ── Logo ── */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-              className="flex items-center gap-3 mb-12"
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <AnimatePresence mode="wait">
+
+          {/* ════════════════════════════════ FORM ════════════════════════════════ */}
+          {pageState === "form" && (
+            <motion.div key="form"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -30 }} transition={{ duration: 0.5 }}
+              style={{ maxWidth: 560, margin: "0 auto", padding: "60px 20px 80px" }}
             >
-              <div className="relative">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                  style={{
-                    background: "linear-gradient(135deg, #7c3aed, #4c1d95)",
-                    boxShadow: "0 0 30px rgba(124,58,237,0.6), 0 0 60px rgba(124,58,237,0.2), inset 0 1px 0 rgba(255,255,255,0.15)"
-                  }}>
-                  <Sparkles className="w-5 h-5 text-white" />
+              {/* Logo */}
+              <motion.div {...fadeUp(0)} style={{ textAlign: "center", marginBottom: 44 }}>
+                <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                  <div style={{ position: "relative" }}>
+                    <div style={{
+                      width: 60, height: 60, borderRadius: 18,
+                      background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 0 40px rgba(124,58,237,0.7), 0 0 80px rgba(124,58,237,0.3)",
+                    }}>
+                      <Sparkles size={28} color="#fff" />
+                    </div>
+                    <div style={{
+                      position: "absolute", top: -5, right: -5, width: 16, height: 16,
+                      borderRadius: "50%", background: "linear-gradient(135deg,#ffd700,#f59e0b)",
+                      boxShadow: "0 0 12px rgba(255,215,0,0.9)", border: "2px solid #060010",
+                    }} />
+                  </div>
+                  <div style={{ lineHeight: 1 }}>
+                    <span style={{ fontSize: "1.8rem", fontWeight: 800, letterSpacing: "-0.02em", color: "#fff" }}>Wish</span>
+                    <span style={{
+                      fontSize: "1.8rem", fontWeight: 800, letterSpacing: "-0.02em",
+                      background: "linear-gradient(135deg,#ffd700,#f59e0b,#fbbf24)",
+                      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                    }}>Mian</span>
+                  </div>
+                  <span style={{ fontSize: "0.6rem", letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(167,139,250,0.5)" }}>
+                    Cinematic Wish Links
+                  </span>
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-yellow-400"
-                  style={{ boxShadow: "0 0 8px rgba(255,215,0,0.8)" }} />
-              </div>
-              <div>
-                <span className="text-white font-bold text-2xl tracking-tight">
-                  Wish<span className="gold-text">Mian</span>
-                </span>
-                <p className="text-white/25 text-[10px] label tracking-widest">Cinematic Wish Links</p>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* ── Hero headline ── */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="text-center mb-10"
-            >
-              <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-3">
-                <span className="hero-text">Create a moment</span>
-                <br />
-                <span className="text-white/90">they&apos;ll never forget.</span>
-              </h1>
-              <p className="text-white/35 text-base max-w-sm mx-auto leading-relaxed">
-                Fill in the details. Get a magic link. Send it. Watch them feel it.
-              </p>
-            </motion.div>
+              {/* Hero */}
+              <motion.div {...fadeUp(0.08)} style={{ textAlign: "center", marginBottom: 52 }}>
+                <div style={{ fontSize: "clamp(2.2rem,7vw,3.8rem)", fontWeight: 800, lineHeight: 1.08, letterSpacing: "-0.03em" }}>
+                  <div style={{ color: "#fff" }}>Make someone</div>
+                  <div className="text-glow-gold" style={{
+                    background: "linear-gradient(135deg,#ffd700 0%,#f59e0b 40%,#fbbf24 70%,#ffd700 100%)",
+                    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                    fontSize: "clamp(2.4rem,8vw,4.2rem)",
+                  }}>feel magic.</div>
+                </div>
+                <p style={{ marginTop: 18, color: "rgba(255,255,255,0.3)", fontSize: "1rem", lineHeight: 1.7 }}>
+                  Fill the form. Get a link. Send it. Watch them feel it.
+                </p>
+              </motion.div>
 
-            {/* ── Main form card ── */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="w-full max-w-lg"
-            >
-              <div className="rounded-3xl p-8 relative overflow-hidden"
-                style={{
-                  background: "linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  boxShadow: "0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.06)"
-                }}>
-
-                {/* Card shimmer */}
-                <div className="absolute inset-0 shimmer rounded-3xl pointer-events-none" />
-
-                <div className="relative space-y-6">
-
-                  {/* ── Name + From row ── */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label text-violet-400/80 block mb-2.5">✦ For who</label>
-                      <input
-                        className="input"
-                        placeholder="Their name..."
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="label text-violet-400/80 block mb-2.5">✦ From</label>
-                      <input
-                        className="input"
-                        placeholder="Your name..."
-                        value={form.from}
-                        onChange={(e) => setForm({ ...form, from: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  {/* ── Message ── */}
+              {/* Names */}
+              <motion.div {...fadeUp(0.14)} style={{ marginBottom: 28 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div>
-                    <label className="label text-violet-400/80 block mb-2.5">✦ Your message</label>
-                    <div className="relative">
-                      <textarea
-                        className="input resize-none"
-                        rows={4}
-                        placeholder="Write something that will make them feel it deeply..."
-                        value={form.message}
-                        onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      />
-                      {form.message.length > 0 && (
-                        <span className="absolute bottom-3 right-4 text-white/15 text-xs">
-                          {form.message.length}
-                        </span>
-                      )}
-                    </div>
+                    <label style={labelStyle}>For who?</label>
+                    <FocusInput as="input" type="text" placeholder="Their name…"
+                      value={name} onChange={(e) => setName((e as React.ChangeEvent<HTMLInputElement>).target.value)} />
                   </div>
-
-                  {/* ── Occasion ── */}
                   <div>
-                    <label className="label text-violet-400/80 block mb-3">✦ Occasion</label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {OCCASIONS.map((o) => {
-                        const isSelected = form.occasion === o.value;
-                        return (
-                          <motion.button
-                            key={o.value}
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setForm({ ...form, occasion: o.value })}
-                            className="relative flex flex-col items-center gap-1.5 py-3.5 rounded-2xl transition-all duration-300"
-                            style={{
-                              background: isSelected
-                                ? `linear-gradient(135deg, ${o.color}25, ${o.color}10)`
-                                : "rgba(255,255,255,0.03)",
-                              border: isSelected
-                                ? `1px solid ${o.color}60`
-                                : "1px solid rgba(255,255,255,0.06)",
-                              boxShadow: isSelected
-                                ? `0 0 20px ${o.color}25, 0 4px 15px rgba(0,0,0,0.3)`
-                                : "none",
-                            }}
-                          >
-                            <span className="text-2xl">{o.emoji}</span>
-                            <span className="text-[10px] font-medium"
-                              style={{ color: isSelected ? o.color : "rgba(255,255,255,0.4)" }}>
-                              {o.label}
-                            </span>
-                            {isSelected && (
-                              <motion.div
-                                layoutId="occasion-indicator"
-                                className="absolute -bottom-px left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
-                                style={{ background: o.color }}
-                              />
-                            )}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
+                    <label style={labelStyle}>From</label>
+                    <FocusInput as="input" type="text" placeholder="Your name…"
+                      value={from} onChange={(e) => setFrom((e as React.ChangeEvent<HTMLInputElement>).target.value)} />
                   </div>
+                </div>
+              </motion.div>
 
-                  {/* ── Mood ── */}
-                  <div>
-                    <label className="label text-violet-400/80 block mb-3">✦ Mood & style</label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {MOODS.map((m) => {
-                        const isSelected = form.mood === m.value;
-                        return (
-                          <motion.button
-                            key={m.value}
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setForm({ ...form, mood: m.value })}
-                            className="relative flex flex-col items-center gap-1 py-3 px-1 rounded-2xl transition-all duration-300"
-                            style={{
-                              background: isSelected
-                                ? "linear-gradient(135deg, rgba(255,215,0,0.15), rgba(124,58,237,0.1))"
-                                : "rgba(255,255,255,0.03)",
-                              border: isSelected
-                                ? "1px solid rgba(255,215,0,0.4)"
-                                : "1px solid rgba(255,255,255,0.06)",
-                              boxShadow: isSelected
-                                ? "0 0 20px rgba(255,215,0,0.15), 0 4px 15px rgba(0,0,0,0.3)"
-                                : "none",
-                            }}
-                          >
-                            <span className="text-lg">{m.emoji}</span>
-                            <span className="text-[10px] font-semibold"
-                              style={{ color: isSelected ? "#ffd700" : "rgba(255,255,255,0.4)" }}>
-                              {m.label}
-                            </span>
-                            <span className="text-[8px] text-center leading-tight"
-                              style={{ color: isSelected ? "rgba(255,215,0,0.5)" : "rgba(255,255,255,0.2)" }}>
-                              {m.desc}
-                            </span>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </div>
+              {/* Message */}
+              <motion.div {...fadeUp(0.18)} style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>Your Message</label>
+                <FocusInput as="textarea" rows={5} placeholder="Write something from the heart…"
+                  value={message} style={{ resize: "none" } as never}
+                  onChange={(e) => setMessage((e as React.ChangeEvent<HTMLTextAreaElement>).target.value)} />
+              </motion.div>
 
-                  {/* ── Photo upload ── */}
-                  <div>
-                    <label className="label text-violet-400/80 block mb-3">✦ Photo <span className="text-white/20 normal-case" style={{ letterSpacing: "0" }}>(optional)</span></label>
-                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-                    {photo ? (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="relative h-36 rounded-2xl overflow-hidden"
-                        style={{ border: "1px solid rgba(255,255,255,0.1)" }}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={photo} alt="preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0"
-                          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.4), transparent)" }} />
-                        <button
-                          onClick={() => setPhoto(undefined)}
-                          className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all"
-                          style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.15)" }}
-                        >
-                          <X className="w-3.5 h-3.5 text-white" />
-                        </button>
-                      </motion.div>
-                    ) : (
-                      <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => fileRef.current?.click()}
-                        className="w-full h-24 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 group"
+              {/* Occasion */}
+              <motion.div {...fadeUp(0.22)} style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>Occasion</label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 }}>
+                  {OCCASIONS.map((o) => {
+                    const sel = occasion === o.value;
+                    return (
+                      <motion.button key={o.value}
+                        onClick={() => setOccasion(o.value)}
+                        whileHover={{ scale: 1.06, y: -4 }} whileTap={{ scale: 0.94 }}
                         style={{
-                          background: "rgba(255,255,255,0.02)",
-                          border: "1px dashed rgba(255,255,255,0.1)",
-                        }}
-                      >
-                        <Camera className="w-5 h-5 text-white/20 group-hover:text-violet-400 transition-colors" />
-                        <span className="text-white/25 text-sm group-hover:text-white/40 transition-colors">
-                          Add a photo
+                          height: 84, borderRadius: 18, cursor: "pointer",
+                          border: sel ? `2px solid ${o.color}` : "1.5px solid rgba(255,255,255,0.08)",
+                          background: sel ? `linear-gradient(135deg,${o.glow},rgba(255,255,255,0.03))` : "rgba(255,255,255,0.03)",
+                          boxShadow: sel ? `0 0 24px ${o.glow},0 0 48px ${o.glow}` : "none",
+                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 7,
+                          transition: "border 0.2s, background 0.2s, box-shadow 0.2s",
+                        }}>
+                        <span style={{ fontSize: 30 }}>{o.emoji}</span>
+                        <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.06em", color: sel ? o.color : "rgba(255,255,255,0.45)" }}>
+                          {o.label}
                         </span>
                       </motion.button>
-                    )}
+                    );
+                  })}
+                </div>
+              </motion.div>
+
+              {/* Mood */}
+              <motion.div {...fadeUp(0.26)} style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>Mood</label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 }}>
+                  {MOODS.map((m) => {
+                    const sel = mood === m.value;
+                    return (
+                      <motion.button key={m.value}
+                        onClick={() => setMood(m.value)}
+                        whileHover={{ scale: 1.06, y: -4 }} whileTap={{ scale: 0.94 }}
+                        style={{
+                          height: 84, borderRadius: 18, cursor: "pointer",
+                          border: sel ? `2px solid ${m.color}` : "1.5px solid rgba(255,255,255,0.08)",
+                          background: sel ? `linear-gradient(135deg,${m.color}33,rgba(255,255,255,0.03))` : "rgba(255,255,255,0.03)",
+                          boxShadow: sel ? `0 0 24px ${m.color}66,0 0 48px ${m.color}33` : "none",
+                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 7,
+                          transition: "border 0.2s, background 0.2s, box-shadow 0.2s",
+                        }}>
+                        <span style={{ fontSize: 30 }}>{m.emoji}</span>
+                        <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.06em", color: sel ? m.color : "rgba(255,255,255,0.45)" }}>
+                          {m.label}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+
+              {/* Photo */}
+              <motion.div {...fadeUp(0.30)} style={{ marginBottom: 36 }}>
+                <label style={labelStyle}>Photo <span style={{ textTransform: "none", letterSpacing: 0, color: "rgba(255,255,255,0.2)", fontSize: "0.7rem" }}>(optional)</span></label>
+                <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
+                {!photo ? (
+                  <motion.button onClick={() => fileRef.current?.click()}
+                    whileHover={{ scale: 1.01, borderColor: "rgba(167,139,250,0.5)" }}
+                    whileTap={{ scale: 0.99 }}
+                    style={{
+                      width: "100%", height: 100, borderRadius: 20, cursor: "pointer",
+                      border: "2px dashed rgba(167,139,250,0.25)", background: "rgba(124,58,237,0.04)",
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+                      transition: "all 0.2s",
+                    }}>
+                    <Camera size={24} color="rgba(167,139,250,0.5)" />
+                    <span style={{ fontSize: "0.8rem", color: "rgba(167,139,250,0.5)", letterSpacing: "0.05em" }}>Add a photo</span>
+                  </motion.button>
+                ) : (
+                  <div style={{ position: "relative", borderRadius: 20, overflow: "hidden" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo} alt="preview" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.4), transparent)" }} />
+                    <motion.button onClick={() => setPhoto(null)}
+                      whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                      style={{
+                        position: "absolute", top: 10, right: 10, width: 32, height: 32,
+                        borderRadius: "50%", background: "rgba(0,0,0,0.7)", border: "none",
+                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                      }}>
+                      <X size={16} color="#fff" />
+                    </motion.button>
                   </div>
+                )}
+              </motion.div>
 
-                  {/* ── Generate button ── */}
-                  <motion.button
-                    whileHover={canGenerate ? { scale: 1.02, y: -1 } : {}}
-                    whileTap={canGenerate ? { scale: 0.98 } : {}}
-                    onClick={handleGenerate}
-                    disabled={!canGenerate}
-                    className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all duration-300 relative overflow-hidden"
-                    style={canGenerate ? {
-                      background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 50%, #4c1d95 100%)",
-                      color: "#fff",
-                      boxShadow: "0 0 40px rgba(124,58,237,0.5), 0 8px 30px rgba(124,58,237,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
-                    } : {
-                      background: "rgba(255,255,255,0.04)",
-                      color: "rgba(255,255,255,0.2)",
-                      cursor: "not-allowed",
-                    }}
-                  >
-                    {canGenerate && (
-                      <div className="absolute inset-0 shimmer" />
-                    )}
-                    <Wand2 className="w-5 h-5 relative z-10" />
-                    <span className="relative z-10">Generate Magic Link</span>
-                    <ArrowRight className="w-4 h-4 relative z-10" />
-                  </motion.button>
+              {/* Generate button */}
+              <motion.div {...fadeUp(0.34)}>
+                <motion.button onClick={handleGenerate} disabled={!canGenerate}
+                  whileHover={canGenerate ? { scale: 1.02, y: -2 } : {}}
+                  whileTap={canGenerate ? { scale: 0.98 } : {}}
+                  style={{
+                    position: "relative", width: "100%", height: 68, borderRadius: 20,
+                    border: "none", cursor: canGenerate ? "pointer" : "not-allowed", overflow: "hidden",
+                    background: canGenerate
+                      ? "linear-gradient(135deg,#7c3aed 0%,#9333ea 50%,#6d28d9 100%)"
+                      : "rgba(255,255,255,0.06)",
+                    boxShadow: canGenerate
+                      ? "0 0 60px rgba(124,58,237,0.7),0 0 120px rgba(124,58,237,0.3),0 20px 40px rgba(124,58,237,0.4)"
+                      : "none",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+                    transition: "all 0.3s",
+                  }}>
+                  {canGenerate && <Shimmer />}
+                  <Wand2 size={22} color={canGenerate ? "#fff" : "rgba(255,255,255,0.2)"} style={{ position: "relative", zIndex: 1 }} />
+                  <span style={{
+                    fontSize: "1.15rem", fontWeight: 700, letterSpacing: "0.02em",
+                    color: canGenerate ? "#fff" : "rgba(255,255,255,0.2)",
+                    position: "relative", zIndex: 1,
+                  }}>✦ Generate Magic Link ✦</span>
+                  <ArrowRight size={22} color={canGenerate ? "#fff" : "rgba(255,255,255,0.2)"} style={{ position: "relative", zIndex: 1 }} />
+                </motion.button>
+              </motion.div>
 
-                </div>
-              </div>
             </motion.div>
+          )}
 
-            {/* ── Preview cards floating ── */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="flex items-center gap-2 mt-8 text-white/15 text-xs"
+          {/* ════════════════════════════════ DONE ════════════════════════════════ */}
+          {pageState === "done" && (
+            <motion.div key="done"
+              initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              style={{
+                minHeight: "100vh", display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                padding: "60px 20px 80px", textAlign: "center",
+              }}
             >
-              {["🎂 Birthday", "🌙 Eid", "💍 Wedding", "🏆 Success", "💖 Love"].map((tag) => (
-                <span key={tag} className="px-3 py-1 rounded-full"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  {tag}
-                </span>
-              ))}
-            </motion.div>
+              {/* Gold radial glow */}
+              <div aria-hidden="true" style={{
+                position: "fixed", inset: 0, pointerEvents: "none",
+                background: "radial-gradient(ellipse at center, rgba(255,215,0,0.1) 0%, transparent 60%)",
+              }} />
 
-          </motion.div>
+              <motion.div className="float-anim" style={{ fontSize: 88, marginBottom: 28, lineHeight: 1 }}>✨</motion.div>
 
-        ) : (
-          /* ── DONE SCREEN ── */
-          <motion.div
-            key="done"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, type: "spring", bounce: 0.3 }}
-            className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-16"
-          >
-            {/* Celebration glow */}
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ background: "radial-gradient(ellipse at center, rgba(255,215,0,0.08) 0%, transparent 60%)" }} />
+              <motion.h1 {...fadeUp(0.05)} style={{
+                fontSize: "clamp(2rem,6vw,3.2rem)", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 12,
+                background: "linear-gradient(135deg,#ffd700,#f59e0b,#fbbf24)",
+                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              }}>Your wish is ready!</motion.h1>
 
-            {/* Floating emoji */}
-            <motion.div
-              animate={{ y: [0, -15, 0], rotate: [-5, 5, -5] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="text-7xl mb-8 relative z-10"
-            >
-              {selectedOccasion.emoji}
-            </motion.div>
+              <motion.p {...fadeUp(0.1)} style={{ color: "rgba(255,255,255,0.35)", fontSize: "1rem", marginBottom: 40 }}>
+                Share this link. When they open it — magic happens.
+              </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-center mb-10 relative z-10"
-            >
-              <h2 className="text-4xl font-bold mb-3">
-                <span className="hero-text">Your wish is ready.</span>
-              </h2>
-              <p className="text-white/35 text-lg">
-                Send this link. When they open it —{" "}
-                <span className="gold-text font-semibold">magic happens.</span>
-              </p>
-            </motion.div>
-
-            {/* Link card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
-              className="w-full max-w-lg mb-4 relative z-10"
-            >
-              <div className="rounded-2xl p-5 relative overflow-hidden"
-                style={{
-                  background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(124,58,237,0.06))",
-                  border: "1px solid rgba(255,215,0,0.2)",
-                  boxShadow: "0 0 40px rgba(255,215,0,0.08), 0 20px 40px rgba(0,0,0,0.4)"
+              {/* Link box */}
+              <motion.div {...fadeUp(0.15)} style={{ width: "100%", maxWidth: 520, marginBottom: 20 }}>
+                <div style={{
+                  background: "rgba(255,255,255,0.04)", borderRadius: 18,
+                  border: "1.5px solid rgba(255,215,0,0.3)", padding: "16px 18px",
+                  display: "flex", alignItems: "center", gap: 12,
+                  boxShadow: "0 0 30px rgba(255,215,0,0.1),0 0 60px rgba(255,215,0,0.05)",
                 }}>
-                <p className="label text-yellow-500/60 mb-3">✦ Your Magic Link</p>
-                <div className="flex items-center gap-3">
-                  <span className="text-white/50 text-sm flex-1 truncate font-mono">{link}</span>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleCopy}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex-shrink-0"
-                    style={copied ? {
-                      background: "rgba(52,211,153,0.15)",
-                      color: "#34d399",
-                      border: "1px solid rgba(52,211,153,0.3)"
-                    } : {
-                      background: "rgba(124,58,237,0.2)",
-                      color: "#a78bfa",
-                      border: "1px solid rgba(124,58,237,0.3)"
-                    }}
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? "Copied!" : "Copy"}
+                  <span style={{ flex: 1, fontFamily: "monospace", fontSize: "0.75rem", color: "rgba(255,255,255,0.65)", wordBreak: "break-all", textAlign: "left", lineHeight: 1.5 }}>
+                    {link}
+                  </span>
+                  <motion.button onClick={handleCopy}
+                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    style={{
+                      flexShrink: 0, width: 42, height: 42, borderRadius: 12, cursor: "pointer",
+                      background: copied ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.08)",
+                      border: copied ? "1.5px solid rgba(74,222,128,0.5)" : "1.5px solid rgba(255,255,255,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s",
+                    }}>
+                    <AnimatePresence mode="wait">
+                      {copied
+                        ? <motion.div key="c" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}><Check size={16} color="#4ade80" /></motion.div>
+                        : <motion.div key="cp" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}><Copy size={16} color="rgba(255,255,255,0.6)" /></motion.div>
+                      }
+                    </AnimatePresence>
                   </motion.button>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* Preview button */}
+              {/* Gold CTA */}
+              <motion.div {...fadeUp(0.2)} style={{ width: "100%", maxWidth: 520, marginBottom: 14 }}>
+                <motion.a href={link} target="_blank" rel="noopener noreferrer"
+                  whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}
+                  style={{
+                    position: "relative", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                    width: "100%", height: 68, borderRadius: 20, textDecoration: "none", overflow: "hidden",
+                    background: "linear-gradient(135deg,#d97706 0%,#f59e0b 40%,#fbbf24 70%,#d97706 100%)",
+                    boxShadow: "0 0 60px rgba(251,191,36,0.6),0 0 120px rgba(251,191,36,0.25),0 20px 40px rgba(251,191,36,0.35)",
+                    transition: "all 0.3s",
+                  }}>
+                  <Shimmer />
+                  <Sparkles size={22} color="#fff" style={{ position: "relative", zIndex: 1 }} />
+                  <span style={{ fontSize: "1.15rem", fontWeight: 700, color: "#fff", position: "relative", zIndex: 1, letterSpacing: "0.02em" }}>
+                    ✨ Open the Experience
+                  </span>
+                  <ArrowRight size={22} color="#fff" style={{ position: "relative", zIndex: 1 }} />
+                </motion.a>
+              </motion.div>
+
+              <motion.div {...fadeUp(0.25)}>
+                <button onClick={reset}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", fontSize: "0.9rem", padding: "10px 20px", borderRadius: 12, transition: "color 0.2s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.65)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
+                >
+                  ← Create another
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+const OCCASIONS = [
+  { value: "birthday", emoji: "🎂", label: "Birthday",  color: "#ff6b6b", glow: "rgba(255,107,107,0.4)" },
+  { value: "eid",      emoji: "🌙", label: "Eid",       color: "#4ade80", glow: "rgba(74,222,128,0.4)" },
+  { value: "wedding",  emoji: "💍", label: "Wedding",   color: "#f9a8d4", glow: "rgba(249,168,212,0.4)" },
+  { value: "success",  emoji: "🏆", label: "Success",   color: "#fbbf24", glow: "rgba(251,191,36,0.4)" },
+  { value: "love",     emoji: "💖", label: "Love",      color: "#f472b6", glow: "rgba(244,114,182,0.4)" },
+] as const;
+
+const MOODS = [
+  { value: "luxury",      label: "Luxury",    emoji: "✨", color: "#ffd700" },
+  { value: "royal",       label: "Royal",     emoji: "👑", color: "#a78bfa" },
+  { value: "celebration", label: "Celebrate", emoji: "🎊", color: "#fb923c" },
+  { value: "emotional",   label: "Emotional", emoji: "💜", color: "#818cf8" },
+  { value: "cute",        label: "Cute",      emoji: "🌸", color: "#f9a8d4" },
+] as const;
+
+// ─── Stagger helpers ──────────────────────────────────────────────────────────
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 28 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1], delay },
+});
+
+// ─── Shimmer overlay ──────────────────────────────────────────────────────────
+
+function Shimmer() {
+  return (
+    <motion.div
+      aria-hidden="true"
+      style={{
+        position: "absolute",
+        inset: 0,
+        background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)",
+        borderRadius: "inherit",
+        pointerEvents: "none",
+      }}
+      animate={{ x: ["-100%", "100%"] }}
+      transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
+    />
+  );
+}
+
+// ─── Input style ─────────────────────────────────────────────────────────────
+
+const inputBase: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,0.05)",
+  border: "1.5px solid rgba(255,255,255,0.1)",
+  borderRadius: 20,
+  padding: "18px 22px",
+  fontSize: "1.05rem",
+  color: "#fff",
+  outline: "none",
+  transition: "border 0.2s, box-shadow 0.2s",
+  fontFamily: "inherit",
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: "0.65rem",
+  letterSpacing: "0.25em",
+  textTransform: "uppercase",
+  color: "rgba(167,139,250,0.7)",
+  marginBottom: 10,
+  display: "block",
+};
+
+// ─── FocusInput ───────────────────────────────────────────────────────────────
+
+function FocusInput({
+  as: Tag = "input",
+  ...props
+}: { as?: "input" | "textarea" } & React.InputHTMLAttributes<HTMLInputElement> &
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const [focused, setFocused] = useState(false);
+  const focusStyle: React.CSSProperties = focused
+    ? {
+        border: "1.5px solid rgba(167,139,250,0.8)",
+        boxShadow: "0 0 0 4px rgba(124,58,237,0.15), 0 0 30px rgba(124,58,237,0.2)",
+      }
+    : {};
+
+  return (
+    <Tag
+      {...(props as never)}
+      style={{ ...inputBase, ...focusStyle }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+    />
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+export default function HomePage() {
+  const [state, setState] = useState<"form" | "done">("form");
+  const [name, setName] = useState("");
+  const [from, setFrom] = useState("");
+  const [message, setMessage] = useState("");
+  const [occasion, setOccasion] = useState<Occasion | "">("");
+  const [mood, setMood] = useState<Mood | "">("");
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [link, setLink] = useState("");
+  const [copied, setCopied] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const canGenerate =
+    name.trim() !== "" &&
+    from.trim() !== "" &&
+    message.trim() !== "" &&
+    occasion !== "" &&
+    mood !== "";
+
+  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setPhoto(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function handleGenerate() {
+    if (!canGenerate) return;
+    const data: WishData = {
+      name: name.trim(),
+      from: from.trim(),
+      message: message.trim(),
+      occasion: occasion as Occasion,
+      mood: mood as Mood,
+      ...(photo ? { photo } : {}),
+    };
+    const encoded = encodeWish(data);
+    const url = `${window.location.origin}/w/${encoded}`;
+    setLink(url);
+    setState("done");
+  }
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  }
+
+  // ── Aurora blobs ────────────────────────────────────────────────────────────
+  const Aurora = () => (
+    <>
+      <div aria-hidden="true" className="aurora-1" style={{
+        position: "fixed", top: "-20%", left: "-10%",
+        width: 700, height: 700, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)",
+        pointerEvents: "none", zIndex: 0,
+      }} />
+      <div aria-hidden="true" className="aurora-2" style={{
+        position: "fixed", bottom: "-15%", right: "-10%",
+        width: 600, height: 600, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(167,139,250,0.14) 0%, transparent 70%)",
+        pointerEvents: "none", zIndex: 0,
+      }} />
+      <div aria-hidden="true" style={{
+        position: "fixed", top: "40%", left: "50%", transform: "translate(-50%,-50%)",
+        width: 900, height: 400, borderRadius: "50%",
+        background: "radial-gradient(ellipse, rgba(109,40,217,0.07) 0%, transparent 70%)",
+        pointerEvents: "none", zIndex: 0,
+      }} />
+    </>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#060010", position: "relative" }}>
+      <ParticlesBg count={90} />
+      <Aurora />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <AnimatePresence mode="wait">
+          {state === "form" ? (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
-              className="w-full max-w-lg relative z-10 space-y-3"
-            >
-              <a
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full py-4 rounded-2xl font-bold text-base text-center text-black transition-all duration-300"
-                style={{
-                  background: "linear-gradient(135deg, #ffd700 0%, #ffed4a 50%, #f59e0b 100%)",
-                  boxShadow: "0 0 40px rgba(255,215,0,0.4), 0 8px 30px rgba(255,215,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)"
-                }}
-              >
-                ✨ Preview the Experience
-              </a>
-
-              <button
-                onClick={() => { setStep("form"); setLink(""); }}
-                className="w-full py-3 rounded-2xl text-sm text-white/30 hover:text-white/60 transition-colors"
-                style={{ border: "1px solid rgba(255,255,255,0.06)" }}
-              >
-                ← Create another wish
-              </button>
-            </motion.div>
-
-            {/* Share hint */}
-            <motion.p
+              key="form"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="mt-8 text-white/15 text-xs text-center relative z-10"
+              exit={{ opacity: 0, y: -30 }}
+              transition={{ duration: 0.5 }}
+              style={{
+                maxWidth: 560,
+                margin: "0 auto",
+                paddingTop: 60,
+                paddingBottom: 80,
+                paddingLeft: 20,
+                paddingRight: 20,
+              }}
             >
-              Share via WhatsApp, Instagram, or any messenger
-            </motion.p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {/* ── Logo ── */}
+              <motion.div {...fadeUp(0)} style={{ textAlign: "center", marginBottom: 40 }}>
+                <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                  <div style={{ position: "relative", display: "inline-block" }}>
+                    <div style={{
+                      width: 56, height: 56, borderRadius: 16,
+                      background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 0 30px rgba(124,58,237,0.6), 0 0 60px rgba(124,58,237,0.2)",
+                    }}>
+                      <Sparkles size={26} color="#fff" />
+                    </div>
+                    <div style={{
+                      position: "absolute", top: -4, right: -4,
+                      width: 14, height: 14, borderRadius: "50%",
+                      background: "linear-gradient(135deg, #ffd700, #f59e0b)",
+                      boxShadow: "0 0 10px rgba(255,215,0,0.8)",
+                      border: "2px solid #060010",
+                    }} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "1.6rem", fontWeight: 800, letterSpacing: "-0.02em", color: "#fff" }}>
+                      Wish
+                    </span>
+                    <span style={{
+                      fontSize: "1.6rem", fontWeight: 800, letterSpacing: "-0.02em",
+                      background: "linear-gradient(135deg, #ffd700, #f59e0b, #fbbf24)",
+                      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                    }}>
+                      Mian
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: "0.6rem", letterSpacing: "0.3em", textTransform: "uppercase",
+                    color: "rgba(167,139,250,0.5)", marginTop: -4,
+                  }}>
+                    Cinematic Wish Links
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* ── Hero Text ── */}
+              <motion.div {...fadeUp(0.08)} style={{ textAlign: "center", marginBottom: 48 }}>
+                <div style={{ fontSize: "clamp(2rem,6vw,3.5rem)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em" }}>
+                  <div style={{ color: "#fff" }}>Make someone</div>
+                  <div
+                    className="text-glow-gold"
+                    style={{
+                      background: "linear-gradient(135deg, #ffd700 0%, #f59e0b 40%, #fbbf24 70%, #ffd700 100%)",
+                      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                      fontSize: "clamp(2.2rem,7vw,4rem)",
+                    }}
+                  >
+                    feel magic.
+                  </div>
+                </div>
+                <p style={{ marginTop: 16, color: "rgba(255,255,255,0.3)", fontSize: "0.95rem", lineHeight: 1.6 }}>
+                  Fill the form. Get a link. Send it. Watch them feel it.
+                </p>
+              </motion.div>
+
+              {/* ── Names Row ── */}
+              <motion.div {...fadeUp(0.14)} style={{ marginBottom: 28 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>For who?</label>
+                    <FocusInput
+                      as="input"
+                      type="text"
+                      placeholder="Their name…"
+                      value={name}
+                      onChange={(e) => setName((e as React.ChangeEvent<HTMLInputElement>).target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>From</label>
+                    <FocusInput
+                      as="input"
+                      type="text"
+                      placeholder="Your name…"
+                      value={from}
+                      onChange={(e) => setFrom((e as React.ChangeEvent<HTMLInputElement>).target.value)}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* ── Message ── */}
+              <motion.div {...fadeUp(0.18)} style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>Your Message</label>
+                <FocusInput
+                  as="textarea"
+                  rows={5}
+                  placeholder="Write something from the heart…"
+                  value={message}
+                  onChange={(e) => setMessage((e as React.ChangeEvent<HTMLTextAreaElement>).target.value)}
+                  style={{ resize: "none" } as never}
+                />
+              </motion.div>
+
+              {/* ── Occasion ── */}
+              <motion.div {...fadeUp(0.22)} style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>Occasion</label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+                  {OCCASIONS.map((occ) => {
+                    const selected = occasion === occ.value;
+                    return (
+                      <motion.button
+                        key={occ.value}
+                        onClick={() => setOccasion(occ.value as Occasion)}
+                        whileHover={{ scale: 1.05, y: -3 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                          height: 80,
+                          borderRadius: 16,
+                          border: selected ? `2px solid ${occ.color}` : "1.5px solid rgba(255,255,255,0.08)",
+                          background: selected
+                            ? `linear-gradient(135deg, ${occ.glow}, rgba(255,255,255,0.03))`
+                            : "rgba(255,255,255,0.03)",
+                          boxShadow: selected ? `0 0 20px ${occ.glow}, 0 0 40px ${occ.glow}` : "none",
+                          display: "flex", flexDirection: "column",
+                          alignItems: "center", justifyContent: "center", gap: 6,
+                          cursor: "pointer", transition: "all 0.2s",
+                          transform: selected ? "scale(1.05)" : "scale(1)",
+                        }}
+                      >
+                        <span style={{ fontSize: 28 }}>{occ.emoji}</span>
+                        <span style={{
+                          fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.05em",
+                          color: selected ? occ.color : "rgba(255,255,255,0.5)",
+                        }}>
+                          {occ.label}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+
+              {/* ── Mood ── */}
+              <motion.div {...fadeUp(0.26)} style={{ marginBottom: 32 }}>
+                <label style={labelStyle}>Mood</label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10 }}>
+                  {MOODS.map((m) => {
+                    const selected = mood === m.value;
+                    return (
+                      <motion.button
+                        key={m.value}
+                        onClick={() => setMood(m.value as Mood)}
+                        whileHover={{ scale: 1.05, y: -3 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                          height: 80,
+                          borderRadius: 16,
+                          border: selected ? `2px solid ${m.color}` : "1.5px solid rgba(255,255,255,0.08)",
+                          background: selected
+                            ? `linear-gradient(135deg, ${m.color}33, rgba(255,255,255,0.03))`
+                            : "rgba(255,255,255,0.03)",
+                          boxShadow: selected ? `0 0 20px ${m.color}66, 0 0 40px ${m.color}33` : "none",
+                          display: "flex", flexDirection: "column",
+                          alignItems: "center", justifyContent: "center", gap: 6,
+                          cursor: "pointer", transition: "all 0.2s",
+                          transform: selected ? "scale(1.05)" : "scale(1)",
+                        }}
+                      >
+                        <span style={{ fontSize: 28 }}>{m.emoji}</span>
+                        <span style={{
+                          fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.05em",
+                          color: selected ? m.color : "rgba(255,255,255,0.5)",
+                        }}>
+                          {m.label}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+
+              {/* ── Photo Upload ── */}
+              <motion.div {...fadeUp(0.30)} style={{ marginBottom: 36 }}>
+                <label style={labelStyle}>Photo (optional)</label>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handlePhoto}
+                />
+                {!photo ? (
+                  <motion.button
+                    onClick={() => fileRef.current?.click()}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      width: "100%", height: 100, borderRadius: 20,
+                      border: "2px dashed rgba(167,139,250,0.3)",
+                      background: "rgba(124,58,237,0.04)",
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", justifyContent: "center", gap: 8,
+                      cursor: "pointer", transition: "all 0.2s",
+                    }}
+                  >
+                    <Camera size={24} color="rgba(167,139,250,0.6)" />
+                    <span style={{ fontSize: "0.8rem", color: "rgba(167,139,250,0.6)", letterSpacing: "0.05em" }}>
+                      Add a photo
+                    </span>
+                  </motion.button>
+                ) : (
+                  <div style={{ position: "relative", borderRadius: 20, overflow: "hidden" }}>
+                    <img
+                      src={photo}
+                      alt="Preview"
+                      style={{ width: "100%", height: 160, objectFit: "cover", display: "block", borderRadius: 20 }}
+                    />
+                    <motion.button
+                      onClick={() => setPhoto(null)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      style={{
+                        position: "absolute", top: 10, right: 10,
+                        width: 32, height: 32, borderRadius: "50%",
+                        background: "rgba(0,0,0,0.7)", border: "none",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X size={16} color="#fff" />
+                    </motion.button>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* ── Generate Button ── */}
+              <motion.div {...fadeUp(0.34)}>
+                <motion.button
+                  onClick={handleGenerate}
+                  disabled={!canGenerate}
+                  whileHover={canGenerate ? { scale: 1.02, y: -2 } : {}}
+                  whileTap={canGenerate ? { scale: 0.98 } : {}}
+                  style={{
+                    position: "relative",
+                    width: "100%", height: 64, borderRadius: 18,
+                    border: "none", cursor: canGenerate ? "pointer" : "not-allowed",
+                    overflow: "hidden",
+                    background: canGenerate
+                      ? "linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #6d28d9 100%)"
+                      : "rgba(255,255,255,0.06)",
+                    boxShadow: canGenerate
+                      ? "0 0 60px rgba(124,58,237,0.7), 0 0 120px rgba(124,58,237,0.3), 0 20px 40px rgba(124,58,237,0.4)"
+                      : "none",
+                    transition: "all 0.3s",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
+                  }}
+                >
+                  {canGenerate && <Shimmer />}
+                  <Wand2 size={20} color={canGenerate ? "#fff" : "rgba(255,255,255,0.2)"} />
+                  <span style={{
+                    fontSize: "1.1rem", fontWeight: 700, letterSpacing: "0.02em",
+                    color: canGenerate ? "#fff" : "rgba(255,255,255,0.2)",
+                    position: "relative", zIndex: 1,
+                  }}>
+                    ✦ Generate Magic Link ✦
+                  </span>
+                  <ArrowRight size={20} color={canGenerate ? "#fff" : "rgba(255,255,255,0.2)"} />
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          ) : (
+            /* ── DONE STATE ── */
+            <motion.div
+              key="done"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              style={{
+                minHeight: "100vh",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                padding: "60px 20px 80px",
+                textAlign: "center",
+              }}
+            >
+              {/* Floating emoji */}
+              <motion.div
+                className="float-anim"
+                style={{ fontSize: 80, marginBottom: 28, display: "block", lineHeight: 1 }}
+              >
+                ✨
+              </motion.div>
+
+              {/* Title */}
+              <motion.div {...fadeUp(0.05)} style={{ marginBottom: 12 }}>
+                <h1 style={{
+                  fontSize: "clamp(2rem,6vw,3rem)", fontWeight: 800, letterSpacing: "-0.03em",
+                  background: "linear-gradient(135deg, #ffd700, #f59e0b, #fbbf24)",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                }}>
+                  Your wish is ready!
+                </h1>
+              </motion.div>
+
+              <motion.p {...fadeUp(0.1)} style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.95rem", marginBottom: 36 }}>
+                Share this link and let the magic begin.
+              </motion.p>
+
+              {/* Link box */}
+              <motion.div {...fadeUp(0.15)} style={{ width: "100%", maxWidth: 520, marginBottom: 24 }}>
+                <div style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1.5px solid rgba(255,215,0,0.3)",
+                  borderRadius: 18,
+                  padding: "16px 18px",
+                  display: "flex", alignItems: "center", gap: 12,
+                  boxShadow: "0 0 30px rgba(255,215,0,0.08), 0 0 60px rgba(255,215,0,0.04)",
+                }}>
+                  <span style={{
+                    flex: 1, fontFamily: "monospace", fontSize: "0.78rem",
+                    color: "rgba(255,255,255,0.7)", wordBreak: "break-all",
+                    textAlign: "left", lineHeight: 1.5,
+                  }}>
+                    {link}
+                  </span>
+                  <motion.button
+                    onClick={handleCopy}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    style={{
+                      flexShrink: 0, width: 40, height: 40, borderRadius: 12,
+                      background: copied ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.08)",
+                      border: copied ? "1.5px solid rgba(74,222,128,0.5)" : "1.5px solid rgba(255,255,255,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", transition: "all 0.2s",
+                    }}
+                  >
+                    <AnimatePresence mode="wait">
+                      {copied ? (
+                        <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <Check size={16} color="#4ade80" />
+                        </motion.div>
+                      ) : (
+                        <motion.div key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                          <Copy size={16} color="rgba(255,255,255,0.6)" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
+              </motion.div>
+
+              {/* Open CTA */}
+              <motion.div {...fadeUp(0.2)} style={{ width: "100%", maxWidth: 520, marginBottom: 16 }}>
+                <motion.a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    position: "relative",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                    width: "100%", height: 64, borderRadius: 18,
+                    background: "linear-gradient(135deg, #d97706 0%, #f59e0b 40%, #fbbf24 70%, #d97706 100%)",
+                    boxShadow: "0 0 60px rgba(251,191,36,0.6), 0 0 120px rgba(251,191,36,0.25), 0 20px 40px rgba(251,191,36,0.35)",
+                    textDecoration: "none", overflow: "hidden",
+                    transition: "all 0.3s",
+                  }}
+                >
+                  <Shimmer />
+                  <Sparkles size={20} color="#fff" style={{ position: "relative", zIndex: 1 }} />
+                  <span style={{
+                    fontSize: "1.1rem", fontWeight: 700, color: "#fff",
+                    position: "relative", zIndex: 1, letterSpacing: "0.02em",
+                  }}>
+                    ✨ Open the Experience
+                  </span>
+                  <ArrowRight size={20} color="#fff" style={{ position: "relative", zIndex: 1 }} />
+                </motion.a>
+              </motion.div>
+
+              {/* Back button */}
+              <motion.div {...fadeUp(0.25)}>
+                <motion.button
+                  onClick={() => {
+                    setState("form");
+                    setName(""); setFrom(""); setMessage("");
+                    setOccasion(""); setMood(""); setPhoto(null); setLink("");
+                  }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "rgba(255,255,255,0.35)", fontSize: "0.9rem",
+                    padding: "10px 20px", borderRadius: 12,
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.35)")}
+                >
+                  ← Create another
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
