@@ -1,105 +1,99 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0f;
-  --foreground: #f0f0f5;
-  --accent: #8b5cf6;
-  --accent-glow: rgba(139, 92, 246, 0.3);
-  --gold: #f5a623;
-  --glass-bg: rgba(255, 255, 255, 0.04);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --bg: #05050a;
+  --gold: #ffd700;
+  --gold-soft: #c9a84c;
+  --purple: #7c3aed;
+  --purple-glow: rgba(124, 58, 237, 0.4);
+  --gold-glow: rgba(255, 215, 0, 0.3);
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.07);
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: #f0f0f5;
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
-/* Glassmorphism utility */
+/* Glass */
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--glass-border);
 }
 
-/* Glow effects */
-.glow-purple {
-  box-shadow: 0 0 40px rgba(139, 92, 246, 0.2);
-}
-
-.glow-gold {
-  box-shadow: 0 0 40px rgba(245, 166, 35, 0.2);
-}
-
-.text-glow {
-  text-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
-}
-
 /* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #a78bfa, #f5a623, #ec4899);
+.gold-text {
+  background: linear-gradient(135deg, #ffd700, #fff0a0, #c9a84c);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.gradient-text-gold {
-  background: linear-gradient(135deg, #f5a623, #ffd700, #f5a623);
+.purple-gold-text {
+  background: linear-gradient(135deg, #a78bfa, #ffd700);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Glow */
+.glow-gold { box-shadow: 0 0 40px rgba(255, 215, 0, 0.2), 0 0 80px rgba(255, 215, 0, 0.08); }
+.glow-purple { box-shadow: 0 0 40px rgba(124, 58, 237, 0.25), 0 0 80px rgba(124, 58, 237, 0.1); }
+.text-glow-gold { text-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3); }
+.text-glow-purple { text-shadow: 0 0 30px rgba(167, 139, 250, 0.6); }
+
+/* Cinematic label */
+.label {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Input */
+.input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px 18px;
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.input::placeholder { color: rgba(255,255,255,0.2); }
+.input:focus {
+  border-color: rgba(124,58,237,0.5);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.4);
-  border-radius: 2px;
-}
-
-/* Noise texture overlay */
-.noise::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.4;
-}
-
-/* Cinematic letter spacing */
-.cinematic {
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-}
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.4); border-radius: 2px; }
 
 /* Particle canvas */
-canvas.particles {
+canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+/* Viewer full screen */
+.viewer-screen {
   position: fixed;
   inset: 0;
-  pointer-events: none;
-  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #05050a;
+  z-index: 50;
 }
