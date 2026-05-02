@@ -5,7 +5,6 @@ import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { decodeWish, getTemplate, WishData, Template } from "@/lib/wish";
 import { Share2, RotateCcw, Sparkles } from "lucide-react";
 import ExplosionCanvas from "./ExplosionCanvas";
-import Link from "next/link";
 
 type Stage = "loading" | "tap" | "exploding" | "reveal" | "message" | "end";
 
@@ -101,7 +100,7 @@ export default function WishViewer() {
         style={{ background: template.glowColor }}
       />
       <div
-        className="fixed bottom-1/4 right-1/4 w-64 h-64 rounded-full blur-[100px] opacity-15 pointer-events-none"
+        className="fixed bottom-1/4 right-1/4 w-64 h-64 rounded-full blur-[100px] opacity-[0.15] pointer-events-none"
         style={{ background: template.colors[1] }}
       />
 
@@ -219,10 +218,10 @@ export default function WishViewer() {
           >
             {/* Top bar */}
             <div className="flex items-center justify-between px-6 py-5">
-              <Link href="/" className="flex items-center gap-1.5 opacity-40 hover:opacity-70 transition-opacity">
+              <a href="../" className="flex items-center gap-1.5 opacity-40 hover:opacity-70 transition-opacity">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
                 <span className="text-white text-xs label">WishMian</span>
-              </Link>
+              </a>
               <div className="flex items-center gap-4">
                 <button onClick={handleReplay} className="text-white/30 hover:text-white/60 transition-colors" title="Replay">
                   <RotateCcw className="w-4 h-4" />
@@ -322,8 +321,8 @@ export default function WishViewer() {
               <p className="text-white/20 text-sm mb-3">
                 Send your own magical wish
               </p>
-              <Link
-                href="/"
+              <a
+                href="../"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all"
                 style={{
                   background: `${template.glowColor}15`,
@@ -333,7 +332,7 @@ export default function WishViewer() {
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 Create with WishMian
-              </Link>
+              </a>
             </motion.div>
           </motion.div>
         )}
@@ -345,7 +344,16 @@ export default function WishViewer() {
 
 function LoadingScreen() {
   return (
-    <div className="viewer-screen">
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#05050a",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <motion.div
         animate={{ opacity: [0.3, 0.8, 0.3] }}
         transition={{ duration: 1.5, repeat: Infinity }}
@@ -359,12 +367,28 @@ function LoadingScreen() {
 
 function InvalidPage() {
   return (
-    <div className="viewer-screen flex-col gap-4 text-center px-6">
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#05050a",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "1rem",
+        textAlign: "center",
+        padding: "1.5rem",
+      }}
+    >
       <span className="text-4xl">💔</span>
       <p className="text-white/60 text-lg">This wish link is invalid or expired.</p>
-      <Link href="/" className="text-violet-400 hover:text-violet-300 text-sm underline underline-offset-4 transition-colors">
+      <a
+        href="/"
+        className="text-violet-400 hover:text-violet-300 text-sm underline underline-offset-4 transition-colors"
+      >
         Create your own wish →
-      </Link>
+      </a>
     </div>
   );
 }

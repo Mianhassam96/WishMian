@@ -61,8 +61,12 @@ export default function CreatorPage() {
   const handleGenerate = () => {
     const data: WishData = { ...form, photo };
     const encoded = encodeWish(data);
-    const base = window.location.origin;
-    setLink(`${base}/w?data=${encoded}`);
+    // Build URL — works both locally and on GitHub Pages
+    const origin = window.location.origin;
+    const basePath = window.location.pathname.replace(/\/$/, "").split("/").slice(0, -0).join("/");
+    // Detect GitHub Pages sub-path (e.g. /WishMian)
+    const repoBase = window.location.pathname.startsWith("/WishMian") ? "/WishMian" : "";
+    setLink(`${origin}${repoBase}/w/?data=${encoded}`);
     setStep("done");
   };
 

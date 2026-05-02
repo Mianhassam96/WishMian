@@ -87,7 +87,7 @@ body {
 /* Particle canvas */
 canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
 
-/* Viewer full screen */
+/* Viewer full screen overlay (tap / exploding / reveal stages) */
 .viewer-screen {
   position: fixed;
   inset: 0;
@@ -96,4 +96,9 @@ canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
   justify-content: center;
   background: #05050a;
   z-index: 50;
+}
+
+/* Invalid / loading helper */
+.viewer-screen.flex-col {
+  flex-direction: column;
 }
