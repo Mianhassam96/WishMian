@@ -1,0 +1,80 @@
+import { Template } from "@/types";
+
+export const TEMPLATES: Template[] = [
+  {
+    id: "birthday-joy",
+    name: "Joy Explosion",
+    eventType: "birthday",
+    emotionTone: "joy",
+    description: "Bright confetti burst with energetic motion and warm glow",
+    colorPalette: ["#FF6B6B", "#FFE66D", "#4ECDC4", "#FF8E53"],
+    animationStyle: "explosion",
+    musicPack: "upbeat-celebration",
+    tier: "free",
+    preview: "/previews/birthday-joy.jpg",
+  },
+  {
+    id: "wedding-love",
+    name: "Elegant Love Story",
+    eventType: "wedding",
+    emotionTone: "love",
+    description: "Cinematic slow-motion petals with golden light leaks",
+    colorPalette: ["#F8E1E7", "#E8C4C4", "#C9A96E", "#F5F0E8"],
+    animationStyle: "cinematic-love",
+    musicPack: "romantic-strings",
+    tier: "pro",
+    preview: "/previews/wedding-love.jpg",
+  },
+  {
+    id: "eid-spiritual",
+    name: "Spiritual Glow",
+    eventType: "eid",
+    emotionTone: "spiritual",
+    description: "Soft crescent particles with warm amber and emerald tones",
+    colorPalette: ["#1A3A2A", "#C9A96E", "#E8D5A3", "#2D5A3D"],
+    animationStyle: "particle-glow",
+    musicPack: "spiritual-ambient",
+    tier: "free",
+    preview: "/previews/eid-spiritual.jpg",
+  },
+  {
+    id: "success-achievement",
+    name: "Spotlight Achievement",
+    eventType: "success",
+    emotionTone: "achievement",
+    description: "Rising particles with spotlight reveal and golden confetti",
+    colorPalette: ["#1A1A2E", "#16213E", "#F5A623", "#E8E8E8"],
+    animationStyle: "spotlight-rise",
+    musicPack: "epic-triumph",
+    tier: "pro",
+    preview: "/previews/success-achievement.jpg",
+  },
+  {
+    id: "farewell-nostalgia",
+    name: "Cinematic Farewell",
+    eventType: "farewell",
+    emotionTone: "nostalgia",
+    description: "Slow emotional fade with memory-like film grain effect",
+    colorPalette: ["#2C2C2C", "#8B7355", "#C4A882", "#F0EAE0"],
+    animationStyle: "slow-fade",
+    musicPack: "emotional-piano",
+    tier: "pro",
+    preview: "/previews/farewell-nostalgia.jpg",
+  },
+];
+
+export const EVENT_LABELS: Record<string, string> = {
+  birthday: "🎂 Birthday",
+  wedding: "💍 Wedding",
+  eid: "🌙 Eid al-Fitr",
+  success: "🏆 Success",
+  farewell: "💔 Farewell",
+};
+
+export const EMOTION_LABELS: Record<string, string> = {
+  joy: "Joy & Celebration",
+  love: "Love & Romance",
+  spiritual: "Spiritual & Peaceful",
+  achievement: "Achievement & Pride",
+  nostalgia: "Nostalgia & Emotion",
+};
