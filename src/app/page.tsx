@@ -127,14 +127,25 @@ export default function HomePage() {
 
   const handleGenerate = () => {
     if (!name.trim() || !message.trim() || !occasion || !mood) return;
+
+    // Store photo separately in sessionStorage to keep URL short
+    let photoKey = "";
+    if (photo) {
+      photoKey = "wm_photo_" + Date.now().toString(36);
+      try { sessionStorage.setItem(photoKey, photo); } catch { photoKey = ""; }
+    }
+
     const data: WishData = {
       name: name.trim(), from: from.trim(), message: message.trim(),
-      occasion: occasion, mood: mood, ...(photo ? { photo } : {}),
+      occasion: occasion, mood: mood,
+      // Only embed photo in URL if it's small enough (no photo uploaded)
+      // Photo is retrieved from sessionStorage via photoKey
     };
     const encoded = encodeWish(data);
     const origin = window.location.origin;
     const base = window.location.pathname.startsWith("/WishMian") ? "/WishMian" : "";
-    setLink(`${origin}${base}/w/?data=${encoded}`);
+    const photoParam = photoKey ? `&pk=${photoKey}` : "";
+    setLink(`${origin}${base}/w/?data=${encoded}${photoParam}`);
     setPageState("done");
   };
 

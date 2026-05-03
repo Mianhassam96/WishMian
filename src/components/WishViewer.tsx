@@ -159,6 +159,8 @@ export default function WishViewer() {
     if(!encoded){setStage("tap");return;}
     const decoded=decodeWish(encoded);
     if(!decoded){setStage("tap");return;}
+    const photoKey=params.get("pk");
+    if(photoKey){try{const p=sessionStorage.getItem(photoKey);if(p)(decoded as {photo?:string}).photo=p;}catch{/**/}}
     setData(decoded);
     setTemplate(getTemplate(decoded.occasion,decoded.mood));
     setStage("silence");
