@@ -83,3 +83,9 @@ canvas.particles-bg {
 .spin-slow  { animation: spin-slow 20s linear infinite; }
 .spin-rev   { animation: spin-reverse 15s linear infinite; }
 .text-glow-gold { animation: text-glow-pulse 3s ease-in-out infinite; }
+
+/* ── Typing cursor blink ── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}

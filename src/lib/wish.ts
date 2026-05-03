@@ -30,6 +30,7 @@ export function decodeWish(encoded: string): WishData | null {
 
 export interface Template {
   colors: string[];
+  colorPalette: string[];
   particleColors: string[];
   bgGradient: string;
   glowColor: string;
@@ -39,7 +40,13 @@ export interface Template {
   animationStyle: "explosion" | "gold-fall" | "petal-rise" | "star-burst" | "heart-float";
 }
 
-export const TEMPLATES: Record<Occasion, Record<Mood, Template>> = {
+export function getTemplate(occasion: Occasion, mood: Mood): Template {
+  const t = TEMPLATES[occasion]?.[mood] ?? TEMPLATES.birthday.luxury;
+  // colorPalette = colors array (used for accent bar in viewer)
+  return { ...t, colorPalette: t.colors };
+}
+
+export const TEMPLATES: Record<Occasion, Record<Mood, Omit<Template, "colorPalette">>> = {
   birthday: {
     luxury:      { colors: ["#ffd700","#ff6b6b"], particleColors: ["#ffd700","#ff6b6b","#fff","#ffb347"], bgGradient: "from-[#1a0a00] via-[#0d0005] to-[#05050a]", glowColor: "#ffd700", emoji: "🎂", label: "Happy Birthday", musicFile: "/audio/birthday.mp3", animationStyle: "explosion" },
     cute:        { colors: ["#ff6eb4","#ffb3d9"], particleColors: ["#ff6eb4","#ffb3d9","#fff","#ffd6ec"], bgGradient: "from-[#1a0010] via-[#0d0008] to-[#05050a]", glowColor: "#ff6eb4", emoji: "🎀", label: "Happy Birthday", musicFile: "/audio/birthday.mp3", animationStyle: "heart-float" },
@@ -76,7 +83,3 @@ export const TEMPLATES: Record<Occasion, Record<Mood, Template>> = {
     celebration: { colors: ["#ff4d6d","#ff6eb4"], particleColors: ["#ff4d6d","#ff6eb4","#ffd700","#fff"], bgGradient: "from-[#1a0005] via-[#1a0010] to-[#05050a]", glowColor: "#ff4d6d", emoji: "❤️", label: "With Love", musicFile: "/audio/celebration.mp3", animationStyle: "heart-float" },
   },
 };
-
-export function getTemplate(occasion: Occasion, mood: Mood): Template {
-  return TEMPLATES[occasion]?.[mood] ?? TEMPLATES.birthday.luxury;
-}

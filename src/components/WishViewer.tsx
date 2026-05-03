@@ -3,20 +3,91 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { decodeWish, getTemplate, WishData, Template } from "@/lib/wish";
-import { Share2, RotateCcw, Sparkles } from "lucide-react";
+import { Share2, RotateCcw, Sparkles, Music, MusicOff } from "lucide-react";
 import ExplosionCanvas from "./ExplosionCanvas";
+import confetti from "canvas-confetti";
 
-type Stage = "loading" | "tap" | "exploding" | "reveal" | "message" | "end";
+type Stage = "loading" | "tap" | "exploding" | "chat" | "message" | "end";
 
+/* ── Typing hook ─────────────────────────────────────────────────────────── */
+function useTyping(text: string, speed = 38, startDelay = 0) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    setDisplayed(""); setDone(false);
+    let i = 0;
+    const t = setTimeout(() => {
+      const iv = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length) { clearInterval(iv); setDone(true); }
+      }, speed);
+      return () => clearInterval(iv);
+    }, startDelay);
+    return () => clearTimeout(t);
+  }, [text, speed, startDelay]);
+  return { displayed, done };
+}
+
+/* ── Chat bubble ─────────────────────────────────────────────────────────── */
+function ChatBubble({ text, from, color, delay, onDone }: {
+  text: string; from: "them" | "you"; color: string; delay: number; onDone?: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const { displayed, done } = useTyping(text, 35, delay);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), delay - 100);
+    return () => clearTimeout(t);
+  }, [delay]);
+
+  useEffect(() => { if (done && onDone) onDone(); }, [done, onDone]);
+
+  if (!visible) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        display: "flex",
+        justifyContent: from === "you" ? "flex-end" : "flex-start",
+        marginBottom: 10,
+      }}
+    >
+      <div style={{
+        maxWidth: "78%",
+        padding: "12px 16px",
+        borderRadius: from === "you" ? "20px 20px 4px 20px" : "20px 20px 20px 4px",
+        background: from === "you"
+          ? `linear-gradient(135deg, ${color}, ${color}cc)`
+          : "rgba(255,255,255,0.08)",
+        border: from === "them" ? "1px solid rgba(255,255,255,0.1)" : "none",
+        boxShadow: from === "you" ? `0 4px 20px ${color}40` : "none",
+        fontSize: "0.95rem",
+        lineHeight: 1.5,
+        color: "#fff",
+        backdropFilter: "blur(10px)",
+      }}>
+        {displayed}
+        {!done && <span style={{ opacity: 0.5, animation: "blink 1s infinite" }}>|</span>}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Main viewer ─────────────────────────────────────────────────────────── */
 export default function WishViewer() {
   const [data, setData] = useState<WishData | null>(null);
   const [template, setTemplate] = useState<Template | null>(null);
   const [stage, setStage] = useState<Stage>("loading");
   const [invalid, setInvalid] = useState(false);
+  const [musicOn, setMusicOn] = useState(false);
+  const [chatStep, setChatStep] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const shakeControls = useAnimation();
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Decode URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get("data");
@@ -28,312 +99,364 @@ export default function WishViewer() {
     setStage("tap");
   }, []);
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatStep]);
+
+  const fireConfetti = useCallback((color: string) => {
+    const colors = [color, "#ffffff", "#ffd700", "#a78bfa"];
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors });
+    setTimeout(() => confetti({ particleCount: 80, spread: 120, origin: { y: 0.5 }, colors, angle: 60 }), 300);
+    setTimeout(() => confetti({ particleCount: 80, spread: 120, origin: { y: 0.5 }, colors, angle: 120 }), 500);
+  }, []);
+
   const playMusic = useCallback((src: string) => {
     try {
-      if (audioRef.current) { audioRef.current.pause(); }
+      if (audioRef.current) audioRef.current.pause();
       const audio = new Audio(src);
-      audio.volume = 0.6;
-      audio.loop = true;
+      audio.volume = 0.4; audio.loop = true;
       audio.play().catch(() => {});
       audioRef.current = audio;
+      setMusicOn(true);
     } catch {}
   }, []);
 
+  const toggleMusic = () => {
+    if (!audioRef.current) return;
+    if (musicOn) { audioRef.current.pause(); setMusicOn(false); }
+    else { audioRef.current.play().catch(() => {}); setMusicOn(true); }
+  };
+
   const handleTap = useCallback(async () => {
     if (stage !== "tap" || !template) return;
-
-    // Stage: exploding
     setStage("exploding");
-
-    // Screen shake
     await shakeControls.start({
-      x: [0, -8, 8, -6, 6, -3, 3, 0],
-      transition: { duration: 0.5, ease: "easeOut" },
+      x: [0, -10, 10, -8, 8, -4, 4, 0],
+      transition: { duration: 0.6, ease: "easeOut" },
     });
-
-    // Play music
     playMusic(template.musicFile);
-
-    // After explosion (1.2s) → reveal
+    fireConfetti(template.glowColor);
     setTimeout(() => {
-      setStage("reveal");
-      setTimeout(() => setStage("message"), 1800);
+      setStage("chat");
+      setChatStep(1);
     }, 1200);
-  }, [stage, template, shakeControls, playMusic]);
+  }, [stage, template, shakeControls, playMusic, fireConfetti]);
 
   const handleReplay = () => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    setStage("tap");
+    audioRef.current?.pause(); audioRef.current = null;
+    setMusicOn(false); setChatStep(0); setStage("tap");
   };
 
   const handleShare = () => {
     const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({ title: `A special wish for ${data?.name}`, url });
-    } else {
-      navigator.clipboard.writeText(url);
-    }
+    if (navigator.share) navigator.share({ title: `A special wish for ${data?.name}`, url });
+    else navigator.clipboard.writeText(url);
   };
 
-  // Cleanup audio on unmount
-  useEffect(() => {
-    return () => { audioRef.current?.pause(); };
-  }, []);
+  useEffect(() => () => { audioRef.current?.pause(); }, []);
 
   if (invalid) return <InvalidPage />;
   if (!data || !template) return <LoadingScreen />;
 
-  return (
-    <motion.div
-      animate={shakeControls}
-      className="relative min-h-screen overflow-hidden"
-      style={{ background: "#05050a" }}
-    >
-      {/* Dynamic background gradient */}
-      <div
-        className={`fixed inset-0 bg-gradient-to-br ${template.bgGradient} opacity-80 pointer-events-none`}
-      />
+  // Chat script
+  const chatScript = [
+    { from: "them" as const, text: "Hey 👋" },
+    { from: "them" as const, text: `${data.name}... I have something for you.` },
+    { from: "them" as const, text: "Something I've been wanting to say for a while... 💭" },
+    { from: "you"  as const, text: "What is it? 🥺" },
+    { from: "them" as const, text: `${template.label} ${template.emoji}` },
+    { from: "them" as const, text: data.message },
+    ...(data.from ? [{ from: "them" as const, text: `— ${data.from} 💖` }] : []),
+  ];
 
-      {/* Glow orbs */}
-      <div
-        className="fixed top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] opacity-20 pointer-events-none"
-        style={{ background: template.glowColor }}
-      />
-      <div
-        className="fixed bottom-1/4 right-1/4 w-64 h-64 rounded-full blur-[100px] opacity-[0.15] pointer-events-none"
-        style={{ background: template.colors[1] }}
-      />
+  const chatDelays = chatScript.reduce<number[]>((acc, item, i) => {
+    const prev = acc[i - 1] ?? 0;
+    const typingTime = item.text.length * 38 + 600;
+    acc.push(prev + typingTime);
+    return acc;
+  }, []);
+
+  const totalChatTime = chatDelays[chatDelays.length - 1] + chatScript[chatScript.length - 1].text.length * 38 + 1000;
+
+  return (
+    <motion.div animate={shakeControls} style={{ minHeight: "100vh", background: "#060010", position: "relative", overflow: "hidden" }}>
+      {/* Background gradient */}
+      <div style={{
+        position: "fixed", inset: 0, pointerEvents: "none",
+        background: `radial-gradient(ellipse at 30% 20%, ${template.glowColor}18 0%, transparent 60%),
+                     radial-gradient(ellipse at 70% 80%, ${template.colors[1]}12 0%, transparent 60%)`,
+      }} />
+
+      {/* Floating particles */}
+      <FloatingParticles colors={template.particleColors} />
 
       <AnimatePresence mode="wait">
 
-        {/* ── STAGE: TAP ─────────────────────────────────────────────── */}
+        {/* ── TAP SCREEN ── */}
         {stage === "tap" && (
-          <motion.div
-            key="tap"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.6 }}
-            className="viewer-screen cursor-pointer select-none"
+          <motion.div key="tap"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.7 }}
             onClick={handleTap}
+            style={{
+              position: "fixed", inset: 0, display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", cursor: "pointer",
+              background: "#060010",
+            }}
           >
-            {/* Subtle radial glow */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `radial-gradient(ellipse at center, ${template.glowColor}15 0%, transparent 70%)`,
-              }}
-            />
+            {/* Radial glow */}
+            <div style={{
+              position: "absolute", inset: 0, pointerEvents: "none",
+              background: `radial-gradient(ellipse at center, ${template.glowColor}20 0%, transparent 65%)`,
+            }} />
 
-            <div className="relative text-center">
-              {/* Pulsing ring */}
-              <motion.div
-                animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="w-28 h-28 rounded-full border mx-auto mb-8 flex items-center justify-center"
-                style={{ borderColor: `${template.glowColor}40` }}
-              >
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-                  className="w-20 h-20 rounded-full border flex items-center justify-center"
-                  style={{ borderColor: `${template.glowColor}70` }}
-                >
-                  <span className="text-3xl">{template.emoji}</span>
-                </motion.div>
-              </motion.div>
+            {/* Pulsing rings */}
+            {[1, 2, 3].map((i) => (
+              <motion.div key={i}
+                style={{
+                  position: "absolute", width: 80 + i * 60, height: 80 + i * 60,
+                  borderRadius: "50%", border: `1px solid ${template.glowColor}`,
+                  opacity: 0,
+                }}
+                animate={{ scale: [1, 2.2], opacity: [0.5, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }}
+              />
+            ))}
 
-              {/* For name */}
-              <motion.p
-                animate={{ opacity: [0.4, 0.8, 0.4] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="label mb-3"
-                style={{ color: `${template.glowColor}99` }}
-              >
-                For {data.name}
-              </motion.p>
-
-              {/* Tap hint */}
-              <motion.p
-                animate={{ opacity: [0.3, 0.7, 0.3] }}
-                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                className="text-white/30 text-sm label"
-              >
-                Tap to open
-              </motion.p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── STAGE: EXPLODING ───────────────────────────────────────── */}
-        {stage === "exploding" && (
-          <motion.div
-            key="exploding"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="viewer-screen"
-          >
-            <ExplosionCanvas
-              colors={template.particleColors}
-              style={template.animationStyle}
-            />
-            {/* Flash */}
+            {/* Center emoji */}
             <motion.div
-              initial={{ opacity: 0.8 }}
-              animate={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0 bg-white pointer-events-none"
-            />
-          </motion.div>
-        )}
-
-        {/* ── STAGE: REVEAL ──────────────────────────────────────────── */}
-        {stage === "reveal" && (
-          <motion.div
-            key="reveal"
-            initial={{ opacity: 0, scale: 1.3 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="viewer-screen"
-          >
-            <motion.div
-              animate={{ scale: [0.8, 1.2, 1], opacity: [0, 1, 1] }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-8xl"
+              animate={{ scale: [1, 1.08, 1], rotate: [-3, 3, -3] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              style={{ fontSize: 72, marginBottom: 28, position: "relative", zIndex: 1 }}
             >
               {template.emoji}
+            </motion.div>
+
+            {/* Typing intro */}
+            <TypingIntro name={data.name} color={template.glowColor} />
+
+            {/* Tap hint */}
+            <motion.div
+              animate={{ opacity: [0.4, 1, 0.4], y: [0, -4, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 2 }}
+              style={{ position: "relative", zIndex: 1, marginTop: 32 }}
+            >
+              <div style={{
+                padding: "12px 28px", borderRadius: 50,
+                border: `1px solid ${template.glowColor}50`,
+                background: `${template.glowColor}10`,
+                fontSize: "0.75rem", letterSpacing: "0.2em", textTransform: "uppercase",
+                color: template.glowColor,
+              }}>
+                Tap to open ✨
+              </div>
             </motion.div>
           </motion.div>
         )}
 
-        {/* ── STAGE: MESSAGE ─────────────────────────────────────────── */}
-        {stage === "message" && (
-          <motion.div
-            key="message"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1 }}
-            className="relative z-10 min-h-screen flex flex-col"
+        {/* ── EXPLODING ── */}
+        {stage === "exploding" && (
+          <motion.div key="exploding" initial={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: "fixed", inset: 0, background: "#060010", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            {/* Top bar */}
-            <div className="flex items-center justify-between px-6 py-5">
-              <a href="../" className="flex items-center gap-1.5 opacity-40 hover:opacity-70 transition-opacity">
-                <Sparkles className="w-3.5 h-3.5 text-white" />
-                <span className="text-white text-xs label">WishMian</span>
-              </a>
-              <div className="flex items-center gap-4">
-                <button onClick={handleReplay} className="text-white/30 hover:text-white/60 transition-colors" title="Replay">
-                  <RotateCcw className="w-4 h-4" />
+            <ExplosionCanvas colors={template.particleColors} style={template.animationStyle} />
+            <motion.div initial={{ opacity: 0.9 }} animate={{ opacity: 0 }} transition={{ duration: 0.5 }}
+              style={{ position: "absolute", inset: 0, background: "#fff", pointerEvents: "none" }} />
+          </motion.div>
+        )}
+
+        {/* ── CHAT REVEAL ── */}
+        {stage === "chat" && (
+          <motion.div key="chat"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
+            style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+          >
+            {/* Chat header */}
+            <div style={{
+              padding: "16px 20px", display: "flex", alignItems: "center", gap: 12,
+              background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)",
+              borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, zIndex: 10,
+            }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: "50%",
+                background: `linear-gradient(135deg, ${template.glowColor}, ${template.colors[1]})`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 20, boxShadow: `0 0 15px ${template.glowColor}60`,
+              }}>
+                {template.emoji}
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#fff" }}>
+                  {data.from || "Someone Special"}
+                </div>
+                <motion.div
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  style={{ fontSize: "0.7rem", color: template.glowColor }}
+                >
+                  typing...
+                </motion.div>
+              </div>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 12 }}>
+                <button onClick={toggleMusic} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)" }}>
+                  {musicOn ? <Music size={18} /> : <MusicOff size={18} />}
                 </button>
-                <button onClick={handleShare} className="flex items-center gap-1.5 text-sm transition-colors" style={{ color: template.glowColor }}>
-                  <Share2 className="w-4 h-4" />
-                  Share
+                <button onClick={handleReplay} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)" }}>
+                  <RotateCcw size={16} />
+                </button>
+                <button onClick={handleShare} style={{ background: "none", border: "none", cursor: "pointer", color: template.glowColor }}>
+                  <Share2 size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Main content */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 py-10">
+            {/* Chat messages */}
+            <div style={{ flex: 1, padding: "20px 16px", maxWidth: 520, margin: "0 auto", width: "100%" }}>
+              {chatScript.map((msg, i) => (
+                <ChatBubble
+                  key={i}
+                  text={msg.text}
+                  from={msg.from}
+                  color={template.glowColor}
+                  delay={chatDelays[i]}
+                  onDone={i === chatScript.length - 1 ? () => {
+                    fireConfetti(template.glowColor);
+                    setTimeout(() => setStage("message"), 1200);
+                  } : undefined}
+                />
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+          </motion.div>
+        )}
 
-              {/* Photo (if provided) */}
+        {/* ── FULL MESSAGE ── */}
+        {stage === "message" && (
+          <motion.div key="message"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
+            style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+          >
+            {/* Top bar */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "16px 20px",
+            }}>
+              <a href="../" style={{ display: "flex", alignItems: "center", gap: 6, opacity: 0.4, textDecoration: "none" }}>
+                <Sparkles size={14} color="#fff" />
+                <span style={{ color: "#fff", fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase" }}>WishMian</span>
+              </a>
+              <div style={{ display: "flex", gap: 14 }}>
+                <button onClick={toggleMusic} style={{ background: "none", border: "none", cursor: "pointer", color: musicOn ? template.glowColor : "rgba(255,255,255,0.3)" }}>
+                  {musicOn ? <Music size={18} /> : <MusicOff size={18} />}
+                </button>
+                <button onClick={handleReplay} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)" }}>
+                  <RotateCcw size={16} />
+                </button>
+                <button onClick={handleShare} style={{ background: "none", border: "none", cursor: "pointer", color: template.glowColor, display: "flex", alignItems: "center", gap: 5, fontSize: "0.85rem" }}>
+                  <Share2 size={16} /> Share
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 24px 40px", textAlign: "center" }}>
+
+              {/* Photo */}
               {data.photo && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
-                  className="mb-8"
-                >
-                  <div
-                    className="w-28 h-28 rounded-full overflow-hidden border-2"
-                    style={{ borderColor: `${template.glowColor}60`, boxShadow: `0 0 30px ${template.glowColor}40` }}
-                  >
+                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: "spring" }}
+                  style={{ marginBottom: 28 }}>
+                  <div style={{
+                    width: 110, height: 110, borderRadius: "50%", overflow: "hidden",
+                    border: `3px solid ${template.glowColor}`,
+                    boxShadow: `0 0 30px ${template.glowColor}50, 0 0 60px ${template.glowColor}20`,
+                  }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={data.photo} alt={data.name} className="w-full h-full object-cover" />
+                    <img src={data.photo} alt={data.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                 </motion.div>
               )}
 
-              {/* Occasion label */}
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="label mb-3"
-                style={{ color: `${template.glowColor}80` }}
-              >
+              {/* Occasion */}
+              <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                style={{ fontSize: "0.65rem", letterSpacing: "0.25em", textTransform: "uppercase", color: `${template.glowColor}90`, marginBottom: 12 }}>
                 {template.label}
               </motion.p>
 
-              {/* Name — floating glass letters effect */}
+              {/* Name */}
               <motion.h1
-                initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+                initial={{ opacity: 0, y: 30, filter: "blur(12px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ delay: 0.5, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="text-5xl md:text-6xl font-bold text-white text-center mb-8 leading-tight"
-                style={{ textShadow: `0 0 40px ${template.glowColor}60, 0 0 80px ${template.glowColor}30` }}
+                style={{
+                  fontSize: "clamp(2.8rem,10vw,4.5rem)", fontWeight: 800,
+                  letterSpacing: "-0.03em", lineHeight: 1.05, marginBottom: 24,
+                  textShadow: `0 0 40px ${template.glowColor}70, 0 0 80px ${template.glowColor}30`,
+                  color: "#fff",
+                }}
               >
-                {data.name}
+                {data.name} {template.emoji}
               </motion.h1>
 
-              {/* Message */}
+              {/* Message card */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9, duration: 0.8 }}
-                className="glass rounded-3xl p-6 max-w-md w-full mb-6"
-                style={{ borderColor: `${template.glowColor}20`, boxShadow: `0 0 40px ${template.glowColor}10` }}
+                style={{
+                  maxWidth: 420, width: "100%",
+                  background: "rgba(255,255,255,0.04)",
+                  border: `1px solid ${template.glowColor}25`,
+                  borderRadius: 24, padding: "24px 28px",
+                  boxShadow: `0 0 40px ${template.glowColor}12`,
+                  backdropFilter: "blur(20px)",
+                  marginBottom: 20,
+                }}
               >
-                <p className="text-white/80 text-lg leading-relaxed text-center font-light">
+                <p style={{ fontSize: "1.1rem", lineHeight: 1.7, color: "rgba(255,255,255,0.85)", fontWeight: 300 }}>
                   {data.message}
                 </p>
               </motion.div>
 
               {/* From */}
               {data.from && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.3 }}
-                  className="text-white/30 text-sm"
-                >
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
+                  style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.9rem", marginBottom: 32 }}>
                   — {data.from}
                 </motion.p>
               )}
 
               {/* Floating emoji */}
               <motion.div
-                animate={{ y: [0, -12, 0], rotate: [-3, 3, -3] }}
+                animate={{ y: [0, -14, 0], rotate: [-4, 4, -4] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="text-5xl mt-8"
+                style={{ fontSize: 52, marginBottom: 32 }}
               >
                 {template.emoji}
               </motion.div>
-            </div>
 
-            {/* Bottom CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.8 }}
-              className="px-6 pb-10 text-center border-t border-white/5 pt-6"
-            >
-              <p className="text-white/20 text-sm mb-3">
-                Send your own magical wish
-              </p>
-              <a
-                href="../"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all"
-                style={{
-                  background: `${template.glowColor}15`,
-                  color: template.glowColor,
-                  border: `1px solid ${template.glowColor}30`,
-                }}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Create with WishMian
-              </a>
-            </motion.div>
+              {/* Color bar */}
+              <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.2, duration: 0.8 }}
+                style={{ display: "flex", gap: 6, marginBottom: 36 }}>
+                {template.colorPalette.map((c: string, i: number) => (
+                  <div key={i} style={{ width: 40, height: 3, borderRadius: 2, background: c }} />
+                ))}
+              </motion.div>
+
+              {/* CTA */}
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.8 }}>
+                <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.8rem", marginBottom: 12 }}>
+                  Send your own magical wish
+                </p>
+                <a href="../" style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  padding: "12px 24px", borderRadius: 50, textDecoration: "none",
+                  background: `${template.glowColor}18`,
+                  border: `1px solid ${template.glowColor}35`,
+                  color: template.glowColor, fontSize: "0.85rem", fontWeight: 600,
+                }}>
+                  <Sparkles size={14} /> Create with WishMian
+                </a>
+              </motion.div>
+            </div>
           </motion.div>
         )}
 
@@ -342,23 +465,59 @@ export default function WishViewer() {
   );
 }
 
+/* ── Typing intro ─────────────────────────────────────────────────────────── */
+function TypingIntro({ name, color }: { name: string; color: string }) {
+  const line1 = useTyping("Hey 👋 Someone special", 45, 400);
+  const line2 = useTyping(`has a message for you, ${name}…`, 45, 400 + line1.displayed.length * 45 + 600);
+  return (
+    <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
+      <p style={{ fontSize: "1.1rem", color: "rgba(255,255,255,0.7)", marginBottom: 8, minHeight: "1.6em" }}>
+        {line1.displayed}
+        {!line1.done && <span style={{ color, opacity: 0.7 }}>|</span>}
+      </p>
+      {line1.done && (
+        <p style={{ fontSize: "1.1rem", color: "rgba(255,255,255,0.7)", minHeight: "1.6em" }}>
+          {line2.displayed}
+          {!line2.done && <span style={{ color, opacity: 0.7 }}>|</span>}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ── Floating particles ───────────────────────────────────────────────────── */
+function FloatingParticles({ colors }: { colors: string[] }) {
+  const items = Array.from({ length: 18 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    size: 4 + Math.random() * 8,
+    duration: 8 + Math.random() * 12,
+    delay: Math.random() * 8,
+    color: colors[i % colors.length],
+  }));
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 0 }}>
+      {items.map((p) => (
+        <motion.div key={p.id}
+          style={{
+            position: "absolute", left: `${p.x}%`, bottom: -20,
+            width: p.size, height: p.size, borderRadius: "50%",
+            background: p.color, opacity: 0.4,
+          }}
+          animate={{ y: [0, -(window?.innerHeight ?? 800) - 40], opacity: [0, 0.5, 0] }}
+          transition={{ duration: p.duration, repeat: Infinity, delay: p.delay, ease: "linear" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Loading / Invalid ────────────────────────────────────────────────────── */
 function LoadingScreen() {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "#05050a",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <motion.div
-        animate={{ opacity: [0.3, 0.8, 0.3] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-        className="text-white/30 label"
-      >
+    <div style={{ position: "fixed", inset: 0, background: "#060010", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <motion.div animate={{ opacity: [0.3, 0.8, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}
+        style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.7rem", letterSpacing: "0.2em", textTransform: "uppercase" }}>
         Opening...
       </motion.div>
     </div>
@@ -367,28 +526,10 @@ function LoadingScreen() {
 
 function InvalidPage() {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "#05050a",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "1rem",
-        textAlign: "center",
-        padding: "1.5rem",
-      }}
-    >
-      <span className="text-4xl">💔</span>
-      <p className="text-white/60 text-lg">This wish link is invalid or expired.</p>
-      <a
-        href="/"
-        className="text-violet-400 hover:text-violet-300 text-sm underline underline-offset-4 transition-colors"
-      >
-        Create your own wish →
-      </a>
+    <div style={{ position: "fixed", inset: 0, background: "#060010", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, textAlign: "center", padding: 24 }}>
+      <span style={{ fontSize: 48 }}>💔</span>
+      <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "1rem" }}>This wish link is invalid or expired.</p>
+      <a href="../" style={{ color: "#a78bfa", fontSize: "0.9rem", textDecoration: "underline" }}>Create your own wish →</a>
     </div>
   );
 }
