@@ -151,12 +151,46 @@ export default function WishViewer() {
 
 
 
+  // Decode wish from URL on mount
+  useEffect(()=>{
+    soundRef.current=createSound();
+    const params=new URLSearchParams(window.location.search);
+    const encoded=params.get("data");
+    if(!encoded){setStage("tap");return;}
+    const decoded=decodeWish(encoded);
+    if(!decoded){setStage("tap");return;}
+    setData(decoded);
+    setTemplate(getTemplate(decoded.occasion,decoded.mood));
+    setStage("silence");
+  },[]);
+
+  // Setup music - birthday.mp3 for birthday, template music for others
+  useEffect(()=>{
+    if(!template||!data)return;
+    const basePath=window.location.pathname.startsWith("/WishMian")?"/WishMian":"";
+    const src=data.occasion==="birthday"?basePath+"/audio/birthday.mp3":basePath+template.musicFile;
+    const audio=new Audio(src);
+    audio.loop=true;audio.volume=0;
+    audioRef.current=audio;
+    return()=>{audio.pause();audio.src="";};
+  },[template,data]);
+
   const startMusic=useCallback(()=>{const audio=audioRef.current;if(!audio||!musicOn)return;audio.play().catch(()=>{});let vol=0;const fade=setInterval(()=>{vol=Math.min(vol+0.012,0.55);audio.volume=vol;if(vol>=0.55)clearInterval(fade);},120);},[musicOn]);
   const toggleMusic=()=>{const audio=audioRef.current;if(!audio)return;if(musicOn){audio.pause();setMusicOn(false);}else{audio.play().catch(()=>{});setMusicOn(true);}};
 
   const handleTap=()=>{if(stage!=="tap")return;soundRef.current?.tap();setStage("flash");setTimeout(()=>{setStage("exploding");soundRef.current?.boom();startMusic();setGlowPulse(0.4);},500);setTimeout(()=>{setStage("chat");setGlowPulse(0.15);},2800);};
   const handleReplay=()=>{audioRef.current?.pause();if(audioRef.current)audioRef.current.currentTime=0;setChatDone(false);setGlowPulse(0.12);setStage("silence");};
   const handleShare=async()=>{const url=window.location.href;if(navigator.share){await navigator.share({title:"A wish for you",url}).catch(()=>{});}else{await navigator.clipboard.writeText(url).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);}};
+
+  // Stage auto-advance timers
+  useEffect(()=>{
+    if(!data||!template)return;
+    const gc=template.glowColor;
+    if(stage==="cinematic"){setGlowPulse(0.28);const t=setTimeout(()=>{setStage("message");setGlowPulse(0.32);},5500);return()=>clearTimeout(t);}
+    if(stage==="message"){const t=setTimeout(()=>{setStage("finale");setGlowPulse(0.5);fireConfetti(gc,1);},14000);return()=>clearTimeout(t);}
+    if(stage==="finale"){const t=setTimeout(()=>fireConfetti(gc,2),2500);return()=>clearTimeout(t);}
+  },[stage,data,template]);
+
   useEffect(()=>{if(stage==="chat"&&chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight;},[stage,chatDone]);
 
 
