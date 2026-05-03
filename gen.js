@@ -1,0 +1,1 @@
+﻿const fs=require('fs');const a=fs.readFileSync('part1.txt','utf8');const b=fs.readFileSync('part2.txt','utf8');const c=fs.readFileSync('part3.txt','utf8');fs.writeFileSync('src/components/WishViewer.tsx',a+b+c,'utf8');console.log('done',fs.statSync('src/components/WishViewer.tsx').size);
