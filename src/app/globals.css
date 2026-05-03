@@ -89,3 +89,26 @@ canvas.particles-bg {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
+
+/* ── Utility classes used by components ── */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cinematic {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 40%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
