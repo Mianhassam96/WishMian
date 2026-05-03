@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
@@ -9,7 +9,7 @@ import confetti from "canvas-confetti";
 
 type Stage = "loading" | "tap" | "black" | "exploding" | "chat" | "message" | "share";
 
-// ── Sound engine (Web Audio API — zero files needed) ──────────────────────
+// â”€â”€ Sound engine (Web Audio API â€” zero files needed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function createSound() {
   if (typeof window === "undefined") return null;
   try {
@@ -48,7 +48,7 @@ function createSound() {
   } catch { return null; }
 }
 
-// ── Typing hook with variable speed + punctuation pauses ─────────────────
+// â”€â”€ Typing hook with variable speed + punctuation pauses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function useTyping(text: string, baseSpeed = 38, startDelay = 0) {
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
@@ -73,7 +73,7 @@ function useTyping(text: string, baseSpeed = 38, startDelay = 0) {
   return { displayed, done };
 }
 
-// ── Animated typing dots ──────────────────────────────────────────────────
+// â”€â”€ Animated typing dots â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function TypingDots({ color }: { color: string }) {
   return (
     <div style={{ display: "flex", gap: 4, alignItems: "center", padding: "10px 14px" }}>
@@ -88,7 +88,7 @@ function TypingDots({ color }: { color: string }) {
   );
 }
 
-// ── Chat bubble with typing indicator + timestamp ─────────────────────────
+// â”€â”€ Chat bubble with typing indicator + timestamp â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ChatBubble({ text, from, color, delay, onVisible, onDone }: {
   text: string; from: "them" | "you"; color: string; delay: number;
   onVisible?: () => void; onDone?: () => void;
@@ -164,12 +164,12 @@ function ChatBubble({ text, from, color, delay, onVisible, onDone }: {
                   </div>
                 </motion.div>
               )}
-              <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ fontSize: "0.62rem", letterSpacing: "0.28em", textTransform: "uppercase", color: ${template.glowColor}85, marginBottom: 10 }}>{template.label}</motion.p>
+              <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ fontSize: "0.62rem", letterSpacing: "0.28em", textTransform: "uppercase", color: `${template.glowColor}85`, marginBottom: 10 }}>{template.label}</motion.p>
               <motion.h1 initial={{ opacity: 0, y: 28, filter: "blur(14px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.5, duration: 1.1, ease: [0.16, 1, 0.3, 1] }} style={{ fontSize: "clamp(2.6rem,9vw,4.2rem)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.05, marginBottom: 22, textShadow:   0 40px 65, 0 0 80px 28, color: "#fff" }}>{data.name} {template.emoji}</motion.h1>
               <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.9 }} style={{ maxWidth: 400, width: "100%", background: "rgba(255,255,255,0.04)", border: 1px solid 22, borderRadius: 22, padding: "22px 26px", boxShadow:   0 40px 10, backdropFilter: "blur(20px)", marginBottom: 18 }}>
                 <p style={{ fontSize: "1.05rem", lineHeight: 1.75, color: "rgba(255,255,255,0.88)", fontWeight: 300 }}>{data.message}</p>
               </motion.div>
-              {data.from && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }} style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.88rem", marginBottom: 28 }}>— {data.from}</motion.p>}
+              {data.from && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }} style={{ color: "rgba(255,255,255,0.28)", fontSize: "0.88rem", marginBottom: 28 }}>â€” {data.from}</motion.p>}
               <motion.div animate={{ y: [0, -13, 0], rotate: [-3, 3, -3] }} transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }} style={{ fontSize: 50, marginBottom: 28 }}>{template.emoji}</motion.div>
               <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.2, duration: 0.9 }} style={{ display: "flex", gap: 5, marginBottom: 32 }}>
                 {template.colorPalette.map((c: string, i: number) => (<div key={i} style={{ width: 36, height: 3, borderRadius: 2, background: c }} />))}
@@ -182,3 +182,4 @@ function ChatBubble({ text, from, color, delay, onVisible, onDone }: {
             </div>
           </motion.div>
         )}
+
