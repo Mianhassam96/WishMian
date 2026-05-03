@@ -159,7 +159,7 @@ function ChatBubble({ text, from, color, delay, onVisible, onDone }: {
             <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 24px 32px", textAlign: "center" }}>
               {data.photo && (
                 <motion.div initial={{ opacity: 0, scale: 0.75 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: "spring", bounce: 0.4 }} style={{ marginBottom: 24 }}>
-                  <div style={{ width: 108, height: 108, borderRadius: "50%", overflow: "hidden", border: 3px solid , boxShadow:   0 30px 50, 0 0 60px 20 }}>
+                  <div style={{ width: 108, height: 108, borderRadius: "50%", overflow: "hidden", border: `3px solid ${template.glowColor}`, boxShadow: `0 0 30px ${template.glowColor}50, 0 0 60px ${template.glowColor}20` }}>
                     <img src={data.photo} alt={data.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                 </motion.div>
