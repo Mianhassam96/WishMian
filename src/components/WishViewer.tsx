@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { decodeWish, getTemplate, WishData, Template } from "@/lib/wish";
-import { Share2, RotateCcw, Sparkles, Music, MusicOff } from "lucide-react";
+import { Share2, RotateCcw, Sparkles, Music, VolumeX } from "lucide-react";
 import ExplosionCanvas from "./ExplosionCanvas";
 import confetti from "canvas-confetti";
 
@@ -299,7 +299,7 @@ export default function WishViewer() {
               </div>
               <div style={{ marginLeft: "auto", display: "flex", gap: 12 }}>
                 <button onClick={toggleMusic} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)" }}>
-                  {musicOn ? <Music size={18} /> : <MusicOff size={18} />}
+                  {musicOn ? <Music size={18} /> : <VolumeX size={18} />}
                 </button>
                 <button onClick={handleReplay} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)" }}>
                   <RotateCcw size={16} />
@@ -347,7 +347,7 @@ export default function WishViewer() {
               </a>
               <div style={{ display: "flex", gap: 14 }}>
                 <button onClick={toggleMusic} style={{ background: "none", border: "none", cursor: "pointer", color: musicOn ? template.glowColor : "rgba(255,255,255,0.3)" }}>
-                  {musicOn ? <Music size={18} /> : <MusicOff size={18} />}
+                  {musicOn ? <Music size={18} /> : <VolumeX size={18} />}
                 </button>
                 <button onClick={handleReplay} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)" }}>
                   <RotateCcw size={16} />
