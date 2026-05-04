@@ -37,28 +37,9 @@ WishMian is not a greeting maker. It's a **cinematic emotional experience platfo
 - **State**: Zustand
 - **Icons**: Lucide React
 
-## Getting Started
 
-```bash
-npm install
-npm run dev
-```
 
-Open [http://localhost:3000](http://localhost:3000)
 
-## Routes
-
-| Route | Description |
-|---|---|
-| `/` | Landing page |
-| `/create` | Creator Studio (5-step flow) |
-| `/w/[slug]` | Live wish experience page |
-
-## Monetization
-
-- **Free**: Basic templates + watermark
-- **Pro** ($9/mo): Cinematic templates + music + shock reveal
-- **Ultra** ($29/mo): Custom domains + AI generation + premium packs
 
 ---
 
