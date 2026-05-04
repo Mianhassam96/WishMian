@@ -2,8 +2,6 @@
 
 > **Cinematic emotional experience platform** — Turn moments into memories people feel.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Mianhassam96/WishMian)
-
 ## What is WishMian?
 
 WishMian is not a greeting maker. It's a **cinematic emotional experience platform** where users create unforgettable celebration moments. Each creation is:
